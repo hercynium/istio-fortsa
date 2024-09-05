@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"strings"
 
 	"istio.io/api/label"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -29,7 +28,7 @@ type uniqTag struct {
 	revision, tag string
 }
 
-func getTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescription, error) {
+func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescription, error) {
 	tagWebhooks, err := GetRevisionWebhooks(ctx, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve revision tags: %v", err)
@@ -72,10 +71,6 @@ func getTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescrip
 		}
 		return cmp.Compare(a.Tag, b.Tag)
 	})
-
-	for _, t := range tags {
-		fmt.Printf("%s\t%s\t%s\n", t.Tag, t.Revision, strings.Join(t.Namespaces, ","))
-	}
 
 	return tags, nil
 }
