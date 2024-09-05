@@ -18,18 +18,34 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	logger "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+/*
+We'll mock out the clock to make it easier to jump around in time while testing,
+the "real" clock just calls `time.Now`.
+*/
+type realClock struct{}
+
+func (_ realClock) Now() time.Time { return time.Now() }
+
+// Clock knows how to get the current time.
+// It can be used to fake out timing for testing.
+type Clock interface {
+	Now() time.Time
+}
 
 // PodReconciler reconciles a Pod object
 type OutdatedPodReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	clock  Clock
 }
 
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -52,9 +68,9 @@ type OutdatedPodReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *OutdatedPodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := logger.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log.Info("Reconcile OutdatedPodReconciler")
 
 	return ctrl.Result{}, nil
 }
