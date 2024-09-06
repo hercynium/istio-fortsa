@@ -19,70 +19,68 @@ package controller
 import (
 	"context"
 
-	admissionv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	logger "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
 )
 
-// MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
-type MutatingWebhookConfigurationReconciler struct {
+// NamespaceReconciler reconciles a Namespace object
+type NamespaceReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	kubeClient *kubernetes.Clientset
 }
 
-//+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the MutatingWebhookConfiguration object against the actual cluster state, and then
+// the Namespace object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
-func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := logger.FromContext(ctx)
+func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
 
-	log.Info("Reconciling MutatingWebhookConfiguration")
+	log.Info("Reconciling Namespace")
 
+	// if the istio tag on the namespace changed, we should restart the pods so the
+	// sidecar proxies can be configured to whatever the new tag value indicates.
 	util.ProcessIstioStatusData(ctx, req, r.kubeClient)
-
-	var webHook admissionv1.MutatingWebhookConfiguration
-	if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
-		log.Error(err, "unable to fetch MutatingWebhookConfiguration")
-		// we'll ignore not-found errors, since they can't be fixed by an immediate
-		// requeue (we'll need to wait for a new notification), and we can get them
-		// on deleted requests.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
 
 	return ctrl.Result{}, nil
 }
 
-var webhookAppLabelValue = "sidecar-injector"
+var istioRevisionLabel = "istio.io/rev"
 
-// filter webhooks we want to reconcile.
-func onlyReconcileIstioWebhooks() predicate.Predicate {
+// filter namespace events we want to reconcile
+func onlyReconcileIstioLabelChange() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()["app"] == webhookAppLabelValue
+			// only reconcile if the label exists and is not empty
+			return e.Object.GetLabels()[istioRevisionLabel] != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetLabels()["app"] == webhookAppLabelValue
+			// only reconcile if the tag changed
+			oldLabels := e.ObjectOld.GetLabels()
+			newLabels := e.ObjectNew.GetLabels()
+			return oldLabels[istioRevisionLabel] != newLabels[istioRevisionLabel]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.GetLabels()["app"] == webhookAppLabelValue
+			// no namespace means no label to think about. Skip the event.
+			return false
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			// ignore these for now
@@ -92,20 +90,19 @@ func onlyReconcileIstioWebhooks() predicate.Predicate {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MutatingWebhookConfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		panic(err.Error())
 	}
 
-	rec := &MutatingWebhookConfigurationReconciler{
+	rec := &NamespaceReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		kubeClient: kubeClient,
 	}
-
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&admissionv1.MutatingWebhookConfiguration{}).
-		WithEventFilter(onlyReconcileIstioWebhooks()).
+		For(&corev1.Namespace{}).
+		WithEventFilter(onlyReconcileIstioLabelChange()).
 		Complete(rec)
 }
