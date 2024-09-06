@@ -1,3 +1,16 @@
+// Copyright Istio Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package tags
 
 import (
@@ -6,12 +19,12 @@ import (
 	"fmt"
 
 	"istio.io/api/label"
+	"istio.io/istio/istioctl/pkg/tag"
+	"istio.io/istio/pkg/maps"
+	"istio.io/istio/pkg/slices"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/maps"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/slices"
 )
 
 const (
@@ -29,7 +42,7 @@ type uniqTag struct {
 }
 
 func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescription, error) {
-	tagWebhooks, err := GetRevisionWebhooks(ctx, kubeClient)
+	tagWebhooks, err := tag.GetRevisionWebhooks(ctx, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve revision tags: %v", err)
 	}
@@ -39,12 +52,12 @@ func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescrip
 	}
 	rawTags := map[uniqTag]tagDescription{}
 	for _, wh := range tagWebhooks {
-		tagName := GetWebhookTagName(wh)
-		tagRevision, err := GetWebhookRevision(wh)
+		tagName := tag.GetWebhookTagName(wh)
+		tagRevision, err := tag.GetWebhookRevision(wh)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing revision from webhook %q: %v", wh.Name, err)
 		}
-		tagNamespaces, err := GetNamespacesWithTag(ctx, kubeClient, tagName)
+		tagNamespaces, err := tag.GetNamespacesWithTag(ctx, kubeClient, tagName)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving namespaces for tag %q: %v", tagName, err)
 		}
@@ -85,6 +98,7 @@ func GetRevisionWebhooks(ctx context.Context, client kubernetes.Interface) ([]ad
 	return webhooks.Items, nil
 }
 
+/*
 // GetNamespacesWithTag retrieves all namespaces pointed at the given tag.
 func GetNamespacesWithTag(ctx context.Context, client kubernetes.Interface, tag string) ([]string, error) {
 	namespaces, err := client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
@@ -152,3 +166,4 @@ func PreviousInstallExists(ctx context.Context, client kubernetes.Interface) boo
 	}
 	return len(mwhs.Items) > 0
 }
+*/

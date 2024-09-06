@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/client-go/kubernetes"
-
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
@@ -37,16 +36,6 @@ type MutatingWebhookConfigurationReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	kubeClient *kubernetes.Clientset
-}
-
-type tagDescription struct {
-	Tag        string   `json:"tag"`
-	Revision   string   `json:"revision"`
-	Namespaces []string `json:"namespaces"`
-}
-
-type uniqTag struct {
-	revision, tag string
 }
 
 //+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
@@ -86,15 +75,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MutatingWebhookConfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// creates the in-cluster config
-	config := mgr.GetConfig()
-	//config, err := rest.InClusterConfig()
-	//if err != nil {
-	//	panic(err.Error())
-	//}
-
-	// creates the clientset
-	kubeClient, err := kubernetes.NewForConfig(config)
+	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		panic(err.Error())
 	}
