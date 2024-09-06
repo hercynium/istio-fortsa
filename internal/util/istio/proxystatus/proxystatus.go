@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// see here for how to navigate the proxy-status data:
-//  https://github.com/istio/istio/blob/master/istioctl/pkg/writer/pilot/status.go
-
-package main
+package proxystatus
 
 import (
 	"flag"
@@ -35,30 +32,35 @@ import (
 	"istio.io/istio/istioctl/pkg/version"
 	"istio.io/istio/istioctl/pkg/workload"
 	pilotxds "istio.io/istio/pilot/pkg/xds"
-	"istio.io/istio/pkg/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
-const (
-	Revision = "v1-21-3-b16"
-)
+type XDSResponses map[string]*discovery.DiscoveryResponse
 
-func main() {
+func GetProxyStatus() XDSResponses {
 	if err := cmd.ConfigAndEnvProcessing(); err != nil {
 		fmt.Fprintf(os.Stderr, "Could not initialize: %v\n", err)
 		exitCode := cmd.GetExitCode(err)
 		os.Exit(exitCode)
 	}
 
-	rootCmd := GetRootCmd([]string{"proxy-status"})
-	//rootCmd := GetRootCmd(os.Args[1:])
+	// since this code is so tied up in cobra stuff, pass a channel in so we can get
+	// the data we want out...
+	xdsResponsesChannel := make(chan XDSResponses)
 
-	log.EnableKlogWithCobra()
+	rootCmd := GetRootCmd([]string{"proxy-status"}, xdsResponsesChannel)
 
-	if err := rootCmd.Execute(); err != nil {
-		exitCode := cmd.GetExitCode(err)
-		os.Exit(exitCode)
-	}
+	// Do not uncomment the line below - it causes a panic!
+	//log.EnableKlogWithCobra()
+
+	go func() {
+		if err := rootCmd.Execute(); err != nil {
+			exitCode := cmd.GetExitCode(err)
+			os.Exit(exitCode)
+		}
+	}()
+
+	return <-xdsResponsesChannel
 }
 
 // AddFlags adds all command line flags to the given command.
@@ -67,7 +69,7 @@ func AddFlags(rootCmd *cobra.Command) {
 }
 
 // GetRootCmd returns the root of the cobra command-tree.
-func GetRootCmd(args []string) *cobra.Command {
+func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Command {
 	rootCmd := &cobra.Command{
 		SilenceUsage:      true,
 		DisableAutoGenTag: true,
@@ -108,12 +110,12 @@ func GetRootCmd(args []string) *cobra.Command {
 		version.XdsVersionCommand(ctx),
 		// TODO(hanxiaop): this is kept for some releases in case someone is using it.
 		//proxystatus.XdsStatusCommand(ctx),
-		XdsStatusCommand(ctx),
+		XdsStatusCommand(ctx, xdsResponsesChannel),
 	}
 	troubleshootingCommands := []*cobra.Command{
 		version.NewVersionCommand(ctx),
 		//proxystatus.StableXdsStatusCommand(ctx),
-		StableXdsStatusCommand(ctx),
+		StableXdsStatusCommand(ctx, xdsResponsesChannel),
 	}
 	var debugCmdAttachmentPoint *cobra.Command
 	debugCmdAttachmentPoint = rootCmd
@@ -152,8 +154,8 @@ func GetRootCmd(args []string) *cobra.Command {
 	return rootCmd
 }
 
-func StableXdsStatusCommand(ctx cli.Context) *cobra.Command {
-	cmd := XdsStatusCommand(ctx)
+func StableXdsStatusCommand(ctx cli.Context, xdsResponsesChannel chan XDSResponses) *cobra.Command {
+	cmd := XdsStatusCommand(ctx, xdsResponsesChannel)
 	unstableFlags := []string{"xds-via-agents", "xds-via-agents-limit"}
 	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
 		for _, flag := range unstableFlags {
@@ -169,7 +171,7 @@ func StableXdsStatusCommand(ctx cli.Context) *cobra.Command {
 	return cmd
 }
 
-func XdsStatusCommand(ctx cli.Context) *cobra.Command {
+func XdsStatusCommand(ctx cli.Context, xdsResponsesChannel chan XDSResponses) *cobra.Command {
 	var opts clioptions.ControlPlaneOptions
 	var centralOpts clioptions.CentralControlPlaneOptions
 	var multiXdsOpts multixds.Options
@@ -178,7 +180,7 @@ func XdsStatusCommand(ctx cli.Context) *cobra.Command {
 		Use:     "proxy-status [<type>/]<name>[.<namespace>]",
 		Aliases: []string{"ps"},
 		RunE: func(c *cobra.Command, args []string) error {
-			kubeClient, err := ctx.CLIClientWithRevision(opts.Revision)
+			kubeClient, err := ctx.CLIClient()
 			if err != nil {
 				return err
 			}
@@ -191,9 +193,7 @@ func XdsStatusCommand(ctx cli.Context) *cobra.Command {
 				return err
 			}
 
-			for _, r := range xdsResponses {
-				fmt.Printf("%s", r.String())
-			}
+			xdsResponsesChannel <- xdsResponses
 
 			return nil
 			// sw := pilot.XdsStatusWriter{

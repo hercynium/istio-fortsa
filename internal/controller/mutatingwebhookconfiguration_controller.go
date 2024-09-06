@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/proxystatus"
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/tags"
 )
 
@@ -56,9 +57,17 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 	log.Info("Reconcile OutdatedPodReconciler")
 
+	// get tag -> revision -> namespaces mapping
 	tagInfo, _ := tags.GetTags(ctx, r.kubeClient)
 	for _, t := range tagInfo {
 		fmt.Printf("%s\t%s\t%s\n", t.Tag, t.Revision, strings.Join(t.Namespaces, ","))
+	}
+
+	// see here for how to navigate the proxy-status data:
+	//  https://github.com/istio/istio/blob/master/istioctl/pkg/writer/pilot/status.go
+	xdsResponses := proxystatus.GetProxyStatus()
+	for _, r := range xdsResponses {
+		fmt.Printf("%s", r.String())
 	}
 
 	var webHook admissionv1.MutatingWebhookConfiguration
