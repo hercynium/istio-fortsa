@@ -35,7 +35,6 @@ import (
 	"istio.io/istio/istioctl/pkg/version"
 	"istio.io/istio/istioctl/pkg/workload"
 	pilotxds "istio.io/istio/pilot/pkg/xds"
-	"istio.io/istio/pkg/collateral"
 	"istio.io/istio/pkg/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
@@ -70,14 +69,9 @@ func AddFlags(rootCmd *cobra.Command) {
 // GetRootCmd returns the root of the cobra command-tree.
 func GetRootCmd(args []string) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:               "istioctl",
-		Short:             "Istio control interface.",
 		SilenceUsage:      true,
 		DisableAutoGenTag: true,
 		PersistentPreRunE: cmd.ConfigureLogging,
-		Long: `Istio configuration command line utility for service operators to
-debug and diagnose their Istio mesh.
-`,
 	}
 
 	rootCmd.SetArgs(args)
@@ -100,13 +94,6 @@ debug and diagnose their Istio mesh.
 
 	// Attach the Istio logging options to the command.
 	root.LoggingOptions.AttachCobraFlags(rootCmd)
-	hiddenFlags := []string{
-		"log_as_json", "log_rotate", "log_rotate_max_age", "log_rotate_max_backups",
-		"log_rotate_max_size", "log_stacktrace_level", "log_target", "log_caller", "log_output_level",
-	}
-	for _, opt := range hiddenFlags {
-		_ = rootCmd.PersistentFlags().MarkHidden(opt)
-	}
 
 	AddFlags(rootCmd)
 
@@ -140,14 +127,6 @@ debug and diagnose their Istio mesh.
 
 	rootCmd.AddCommand(experimentalCmd)
 	experimentalCmd.AddCommand(workload.Cmd(ctx))
-
-	rootCmd.AddCommand(collateral.CobraCommand(rootCmd, collateral.Metadata{
-		Title:   "Istio Control",
-		Section: "istioctl CLI",
-		Manual:  "Istio Control",
-	}))
-
-	//rootCmd.AddCommand(optionsCommand(rootCmd))
 
 	// BFS applies the flag error function to all subcommands
 	seenCommands := make(map[*cobra.Command]bool)
@@ -196,21 +175,7 @@ func XdsStatusCommand(ctx cli.Context) *cobra.Command {
 	var multiXdsOpts multixds.Options
 
 	statusCmd := &cobra.Command{
-		Use:   "proxy-status [<type>/]<name>[.<namespace>]",
-		Short: "Retrieves the synchronization status of each Envoy in the mesh",
-		Long: `
-Retrieves last sent and last acknowledged xDS sync from Istiod to each Envoy in the mesh
-`,
-		Example: `  # Retrieve sync status for all Envoys in a mesh
-  istioctl proxy-status
-
-  # Retrieve sync status for Envoys in a specific namespace
-  istioctl proxy-status --namespace foo
-
-  # Retrieve sync diff for a single Envoy and Istiod
-  istioctl proxy-status istio-egressgateway-59585c5b9c-ndc59.istio-system
-
-`,
+		Use:     "proxy-status [<type>/]<name>[.<namespace>]",
 		Aliases: []string{"ps"},
 		RunE: func(c *cobra.Command, args []string) error {
 			kubeClient, err := ctx.CLIClientWithRevision(opts.Revision)
