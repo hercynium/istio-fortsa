@@ -23,26 +23,21 @@ import (
 	"os"
 
 	// import all known client auth plugins
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/spf13/cobra"
 	"istio.io/istio/istioctl/cmd"
 	"istio.io/istio/istioctl/pkg/cli"
 	"istio.io/istio/istioctl/pkg/clioptions"
-	"istio.io/istio/istioctl/pkg/multixds"
-	pilotxds "istio.io/istio/pilot/pkg/xds"
-	"istio.io/istio/pkg/log"
-
-	"github.com/spf13/cobra"
-
 	"istio.io/istio/istioctl/pkg/completion"
-	"istio.io/istio/istioctl/pkg/proxyconfig"
-	"istio.io/istio/istioctl/pkg/proxystatus"
+	"istio.io/istio/istioctl/pkg/multixds"
 	"istio.io/istio/istioctl/pkg/root"
 	"istio.io/istio/istioctl/pkg/util"
 	"istio.io/istio/istioctl/pkg/version"
 	"istio.io/istio/istioctl/pkg/workload"
+	pilotxds "istio.io/istio/pilot/pkg/xds"
 	"istio.io/istio/pkg/collateral"
+	"istio.io/istio/pkg/log"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (
@@ -55,11 +50,9 @@ func main() {
 		exitCode := cmd.GetExitCode(err)
 		os.Exit(exitCode)
 	}
-	rootCmd := GetRootCmd(os.Args[1:])
-	//flags := rootCmd.PersistentFlags()
-	//rootOptions := cli.AddRootFlags(flags)
 
-	//ctx := cli.NewCLIContext(rootOptions)
+	rootCmd := GetRootCmd([]string{"proxy-status"})
+	//rootCmd := GetRootCmd(os.Args[1:])
 
 	log.EnableKlogWithCobra()
 
@@ -127,11 +120,13 @@ debug and diagnose their Istio mesh.
 		// TODO(hanxiaop): I think experimental version still has issues, so we keep the old version for now.
 		version.XdsVersionCommand(ctx),
 		// TODO(hanxiaop): this is kept for some releases in case someone is using it.
-		proxystatus.XdsStatusCommand(ctx),
+		//proxystatus.XdsStatusCommand(ctx),
+		XdsStatusCommand(ctx),
 	}
 	troubleshootingCommands := []*cobra.Command{
 		version.NewVersionCommand(ctx),
-		proxystatus.StableXdsStatusCommand(ctx),
+		//proxystatus.StableXdsStatusCommand(ctx),
+		StableXdsStatusCommand(ctx),
 	}
 	var debugCmdAttachmentPoint *cobra.Command
 	debugCmdAttachmentPoint = rootCmd
@@ -144,9 +139,7 @@ debug and diagnose their Istio mesh.
 	}
 
 	rootCmd.AddCommand(experimentalCmd)
-	rootCmd.AddCommand(proxyconfig.ProxyConfig(ctx))
 	experimentalCmd.AddCommand(workload.Cmd(ctx))
-	experimentalCmd.AddCommand(proxyconfig.StatsConfigCmd(ctx))
 
 	rootCmd.AddCommand(collateral.CobraCommand(rootCmd, collateral.Metadata{
 		Title:   "Istio Control",
@@ -180,30 +173,80 @@ debug and diagnose their Istio mesh.
 	return rootCmd
 }
 
-func GetIstioProxyStatus(ctx cli.Context) error {
+func StableXdsStatusCommand(ctx cli.Context) *cobra.Command {
+	cmd := XdsStatusCommand(ctx)
+	unstableFlags := []string{"xds-via-agents", "xds-via-agents-limit"}
+	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+		for _, flag := range unstableFlags {
+			if cmd.PersistentFlags().Changed(flag) {
+				return fmt.Errorf("--%s is experimental. Use `istioctl experimental ps --%s`", flag, flag)
+			}
+		}
+		return nil
+	}
+	for _, flag := range unstableFlags {
+		_ = cmd.PersistentFlags().MarkHidden(flag)
+	}
+	return cmd
+}
 
+func XdsStatusCommand(ctx cli.Context) *cobra.Command {
+	var opts clioptions.ControlPlaneOptions
 	var centralOpts clioptions.CentralControlPlaneOptions
 	var multiXdsOpts multixds.Options
-	multiXdsOpts.XdsViaAgents = false
-	multiXdsOpts.XdsViaAgentsLimit = 100
 
-	kubeClient, err := ctx.CLIClientWithRevision(Revision)
-	if err != nil {
-		return err
+	statusCmd := &cobra.Command{
+		Use:   "proxy-status [<type>/]<name>[.<namespace>]",
+		Short: "Retrieves the synchronization status of each Envoy in the mesh",
+		Long: `
+Retrieves last sent and last acknowledged xDS sync from Istiod to each Envoy in the mesh
+`,
+		Example: `  # Retrieve sync status for all Envoys in a mesh
+  istioctl proxy-status
+
+  # Retrieve sync status for Envoys in a specific namespace
+  istioctl proxy-status --namespace foo
+
+  # Retrieve sync diff for a single Envoy and Istiod
+  istioctl proxy-status istio-egressgateway-59585c5b9c-ndc59.istio-system
+
+`,
+		Aliases: []string{"ps"},
+		RunE: func(c *cobra.Command, args []string) error {
+			kubeClient, err := ctx.CLIClientWithRevision(opts.Revision)
+			if err != nil {
+				return err
+			}
+			multiXdsOpts.MessageWriter = c.OutOrStdout()
+			xdsRequest := discovery.DiscoveryRequest{
+				TypeUrl: pilotxds.TypeDebugSyncronization,
+			}
+			xdsResponses, err := multixds.AllRequestAndProcessXds(&xdsRequest, centralOpts, ctx.IstioNamespace(), "", "", kubeClient, multiXdsOpts)
+			if err != nil {
+				return err
+			}
+
+			for _, r := range xdsResponses {
+				fmt.Printf("%s", r.String())
+			}
+
+			return nil
+			// sw := pilot.XdsStatusWriter{
+			// 	Writer:    c.OutOrStdout(),
+			// 	Namespace: ctx.Namespace(),
+			// }
+			// return sw.PrintAll(xdsResponses)
+		},
+		ValidArgsFunction: completion.ValidPodsNameArgs(ctx),
 	}
 
-	xdsRequest := discovery.DiscoveryRequest{
-		TypeUrl: pilotxds.TypeDebugSyncronization,
-	}
+	opts.AttachControlPlaneFlags(statusCmd)
+	centralOpts.AttachControlPlaneFlags(statusCmd)
+	statusCmd.PersistentFlags().BoolVar(&multiXdsOpts.XdsViaAgents, "xds-via-agents", false,
+		"Access Istiod via the tap service of each agent")
+	statusCmd.PersistentFlags().IntVar(&multiXdsOpts.XdsViaAgentsLimit, "xds-via-agents-limit", 100,
+		"Maximum number of pods being visited by istioctl when `xds-via-agent` flag is true."+
+			"To iterate all the agent pods without limit, set to 0")
 
-	xdsResponses, err := multixds.AllRequestAndProcessXds(&xdsRequest, centralOpts, ctx.IstioNamespace(), "", "", kubeClient, multiXdsOpts)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range xdsResponses {
-		fmt.Printf("%s", r.String())
-	}
-
-	return nil
+	return statusCmd
 }
