@@ -44,29 +44,23 @@ type NamespaceReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=update
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Namespace object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
 	log.Info("Reconciling Namespace")
+
 	r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
 	util.PrintRevisionTagInfo(ctx, r.IstioData.TagInfo)
-
-	//r.Recorder.Event(nil, "Warning", "Deleting", "message")
 
 	return ctrl.Result{}, nil
 }
 
+// namespaces with istio-injection will have this label. If it changes,
+// the pods probably have to be restarted.
 var istioRevisionLabel = "istio.io/rev"
 
 // filter namespace events we want to reconcile
@@ -95,15 +89,6 @@ func onlyReconcileIstioLabelChange() predicate.Predicate {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	//kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
-	//if err != nil {
-	//	panic(err.Error())
-	//}
-	// rec := &NamespaceReconciler{
-	// 	Client:     mgr.GetClient(),
-	// 	Scheme:     mgr.GetScheme(),
-	// 	KubeClient: kubeClient,
-	// }
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		WithEventFilter(onlyReconcileIstioLabelChange()).

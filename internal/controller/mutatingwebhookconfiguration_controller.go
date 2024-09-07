@@ -44,13 +44,6 @@ type MutatingWebhookConfigurationReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the MutatingWebhookConfiguration object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
 func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
 
@@ -58,7 +51,6 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 	// if the istio tag on the namespace changed, we should restart the pods so the
 	// sidecar proxies can be configured to whatever the new tag value indicates.
-	//sd, _ := util.GetProxyStatusData(ctx, r.KubeClient)
 	//r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
 	util.PrintProxyStatusData(ctx, r.IstioData.ProxyStatuses)
 
@@ -74,6 +66,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
+// all istio webhooks should have this "app" label value
 var webhookAppLabelValue = "sidecar-injector"
 
 // filter webhooks we want to reconcile.
@@ -97,17 +90,6 @@ func onlyReconcileIstioWebhooks() predicate.Predicate {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MutatingWebhookConfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-
-	// rec := &MutatingWebhookConfigurationReconciler{
-	// 	Client:     mgr.GetClient(),
-	// 	Scheme:     mgr.GetScheme(),
-	// 	KubeClient: kubeClient,
-	// }
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&admissionv1.MutatingWebhookConfiguration{}).
 		WithEventFilter(onlyReconcileIstioWebhooks()).

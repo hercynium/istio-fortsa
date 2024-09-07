@@ -8,8 +8,6 @@ import (
 	"time"
 
 	xdsstatus "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
-	//"github.com/spf13/pflag"
-	//"istio.io/istio/istioctl/pkg/cli"
 	"istio.io/istio/istioctl/pkg/multixds"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/client-go/kubernetes"
@@ -51,17 +49,6 @@ type IstioProxyStatusData struct {
 // this should be called from the controllers - it will fetch and process the istio data
 func GetProxyStatusData(ctx context.Context, kubeClient *kubernetes.Clientset) ([]IstioProxyStatusData, error) {
 	log := log.FromContext(ctx)
-
-	/* 	rootOptions := cli.AddRootFlags(&pflag.FlagSet{})
-	   	ictx := cli.NewCLIContext(rootOptions)
-	   	icli, err := ictx.CLIClient()
-	   	meshInfo, err := icli.GetIstioVersions(context.TODO(), ictx.IstioNamespace())
-	   	if err != nil {
-	   		return
-	   	}
-	   	for _, m := range *meshInfo {
-	   		fmt.Printf("%v\t%v\t%v\t%v\n", m.Component, m.Revision, m.Info.GitRevision, m.Info.Version)
-	   	} */
 
 	var istioProxyStatusData []IstioProxyStatusData
 
@@ -112,6 +99,7 @@ type IstioData struct {
 
 func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kubeClient *kubernetes.Clientset) error {
 	log := log.FromContext(ctx)
+
 	// if it's been less than 10 minutes since the last update, don't update again...
 	duration, _ := time.ParseDuration("-10m")
 	if id.LastUpdate.After(time.Now().Add(duration)) {
