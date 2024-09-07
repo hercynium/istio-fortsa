@@ -12,7 +12,6 @@ import (
 	"istio.io/istio/istioctl/pkg/multixds"
 	"istio.io/istio/pilot/pkg/model"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/proxystatus"
@@ -100,7 +99,7 @@ func (id *IstioData) PrintProxyStatusData(ctx context.Context) {
 	}
 }
 
-func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kubeClient *kubernetes.Clientset) error {
+func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernetes.Clientset) error {
 	log := log.FromContext(ctx)
 
 	if !id.mu.TryLock() {
@@ -119,7 +118,7 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kub
 	}
 
 	if id.TagInfo == nil {
-		id.TagInfo = make(map[string]tags.TagDescription) // TODO: make a proper constructor
+		id.TagInfo = make(map[string]tags.TagDescription) // TODO: make a proper constructor, call it in main.go
 	}
 	ti, err := GetRevisionTagInfo(ctx, kubeClient)
 	if err != nil {

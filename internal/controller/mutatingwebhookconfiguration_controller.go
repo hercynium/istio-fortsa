@@ -53,7 +53,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 	// if the istio tag on the namespace changed, we should restart the pods so the
 	// sidecar proxies can be configured to whatever the new tag value indicates.
-	err := r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	err := r.IstioData.RefreshIstioData(ctx, r.KubeClient)
 	if err != nil {
 		log.Error(err, "Couldn't refresh istio data")
 		return ctrl.Result{}, nil

@@ -53,7 +53,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	//log.Info("Reconciling Namespace")
 
-	err := r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	err := r.IstioData.RefreshIstioData(ctx, r.KubeClient)
 	if err != nil {
 		log.Error(err, "Couldn't refresh istio data")
 		return ctrl.Result{}, nil
