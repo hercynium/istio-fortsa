@@ -23,6 +23,7 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -35,6 +36,7 @@ type MutatingWebhookConfigurationReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	KubeClient *kubernetes.Clientset
+	Recorder   record.EventRecorder
 	IstioData  *util.IstioData
 }
 
@@ -47,22 +49,26 @@ type MutatingWebhookConfigurationReconciler struct {
 func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
 
-	log.Info("Reconciling MutatingWebhookConfiguration")
+	//log.Info("Reconciling MutatingWebhookConfiguration")
 
 	// if the istio tag on the namespace changed, we should restart the pods so the
 	// sidecar proxies can be configured to whatever the new tag value indicates.
-	//r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
-	util.PrintProxyStatusData(ctx, r.IstioData.ProxyStatuses)
-
-	var webHook admissionv1.MutatingWebhookConfiguration
-	if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
-		log.Error(err, "unable to fetch MutatingWebhookConfiguration")
-		// we'll ignore not-found errors, since they can't be fixed by an immediate
-		// requeue (we'll need to wait for a new notification), and we can get them
-		// on deleted requests.
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	err := r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	if err != nil {
+		log.Error(err, "Couldn't refresh istio data")
+		return ctrl.Result{}, nil
 	}
-
+	//r.IstioData.PrintProxyStatusData(ctx)
+	/*
+		var webHook admissionv1.MutatingWebhookConfiguration
+		if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
+			log.Error(err, "unable to fetch MutatingWebhookConfiguration")
+			// we'll ignore not-found errors, since they can't be fixed by an immediate
+			// requeue (we'll need to wait for a new notification), and we can get them
+			// on deleted requests.
+			return ctrl.Result{}, client.IgnoreNotFound(err)
+		}
+	*/
 	return ctrl.Result{}, nil
 }
 

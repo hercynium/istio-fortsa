@@ -132,7 +132,8 @@ func main() {
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: kubeClient,
-		IstioData:  &istioData,
+		IstioData:  &istioData, // pointer because multiple controllers share the data
+		Recorder:   mgr.GetEventRecorderFor("istio-proxy-update-controller/webhook-reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MutatingWebhookConfiguration")
 		os.Exit(1)
@@ -141,8 +142,8 @@ func main() {
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: kubeClient,
-		IstioData:  &istioData,
-		Recorder:   mgr.GetEventRecorderFor("namespace-controller"),
+		IstioData:  &istioData, // pointer because multiple controllers share the data
+		Recorder:   mgr.GetEventRecorderFor("istio-proxy-update-controller/namespace-reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)

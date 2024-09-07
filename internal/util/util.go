@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	xdsstatus "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
@@ -18,6 +19,24 @@ import (
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/tags"
 )
 
+type IstioData struct {
+	mu            sync.Mutex
+	ProxyStatuses []IstioProxyStatusData
+	TagInfo       map[string]tags.TagDescription
+	LastUpdate    time.Time
+}
+
+type IstioProxyStatusData struct {
+	ClusterID           string
+	IstiodPodName       string
+	IstiodPodNamespace  string
+	IstiodRevision      string
+	IstiodVersion       string
+	ProxiedPodId        string
+	ProxiedPodName      string
+	ProxiedPodNamespace string
+}
+
 func GetRevisionTagInfo(ctx context.Context, kubeClient *kubernetes.Clientset) ([]tags.TagDescription, error) {
 	log := log.FromContext(ctx)
 	// get tag -> revision -> namespaces mapping
@@ -27,23 +46,6 @@ func GetRevisionTagInfo(ctx context.Context, kubeClient *kubernetes.Clientset) (
 		return nil, err
 	}
 	return tagInfo, nil
-}
-
-func PrintRevisionTagInfo(ctx context.Context, tagInfo []tags.TagDescription) {
-	//log := log.FromContext(ctx)
-	for _, t := range tagInfo {
-		fmt.Printf("%s\t%s\t%s\n", t.Tag, t.Revision, strings.Join(t.Namespaces, ","))
-	}
-}
-
-type IstioProxyStatusData struct {
-	ProxiedPodName      string
-	ProxiedPodNamespace string
-	IstiodPodName       string
-	IstiodPodNamespace  string
-	IstiodRevision      string
-	IstiodVersion       string
-	ClusterID           string
 }
 
 // this should be called from the controllers - it will fetch and process the istio data
@@ -69,36 +71,43 @@ func GetProxyStatusData(ctx context.Context, kubeClient *kubernetes.Clientset) (
 				return nil, err
 			}
 			cp := multixds.CpInfo(response)
-			sd := IstioProxyStatusData{
+			istioProxyStatusData = append(istioProxyStatusData, IstioProxyStatusData{
 				ClusterID:           meta.ClusterID.String(),
 				IstiodPodName:       cp.ID,
 				IstiodPodNamespace:  "istio-system", // TODO: figure out how to get this dynamically
 				IstiodRevision:      regexp.MustCompile(`^istiod-(.*)-[^-]+-[^-]+$`).ReplaceAllString(cp.ID, `$1`),
 				IstiodVersion:       meta.IstioVersion,
+				ProxiedPodId:        clientConfig.GetNode().GetId(),
 				ProxiedPodName:      strings.TrimSuffix(clientConfig.GetNode().GetId(), "."+meta.Namespace),
 				ProxiedPodNamespace: meta.Namespace,
-			}
-			istioProxyStatusData = append(istioProxyStatusData, sd)
+			})
 		}
 	}
 	return istioProxyStatusData, nil
 }
 
-func PrintProxyStatusData(ctx context.Context, statusData []IstioProxyStatusData) {
+func (id *IstioData) PrintRevisionTagInfo(ctx context.Context) {
 	//log := log.FromContext(ctx)
-	for _, sd := range statusData {
+	for _, t := range id.TagInfo {
+		fmt.Printf("%s\t%s\t%s\n", t.Tag, t.Revision, strings.Join(t.Namespaces, ","))
+	}
+}
+
+func (id *IstioData) PrintProxyStatusData(ctx context.Context) {
+	//log := log.FromContext(ctx)
+	for _, sd := range id.ProxyStatuses {
 		fmt.Printf("[%v, %v, %v, %v]\n", sd.IstiodPodName, sd.IstiodRevision, sd.ProxiedPodName, sd.ProxiedPodNamespace)
 	}
 }
 
-type IstioData struct {
-	ProxyStatuses []IstioProxyStatusData
-	TagInfo       []tags.TagDescription
-	LastUpdate    time.Time
-}
-
 func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kubeClient *kubernetes.Clientset) error {
 	log := log.FromContext(ctx)
+
+	if !id.mu.TryLock() {
+		log.Info("The data is currently being updated")
+		return nil
+	}
+	defer id.mu.Unlock()
 
 	// if it's been less than 10 minutes since the last update, don't update again...
 	duration, _ := time.ParseDuration("-10m")
@@ -109,15 +118,29 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kub
 		log.Info("Updating Istio Data...")
 	}
 
+	if id.TagInfo == nil {
+		id.TagInfo = make(map[string]tags.TagDescription) // TODO: make a proper constructor
+	}
 	ti, err := GetRevisionTagInfo(ctx, kubeClient)
-	id.TagInfo = ti
+	if err != nil {
+		log.Error(err, "Couldn't update tag info")
+		return err
+	}
+	for _, t := range ti {
+		id.TagInfo[t.Tag] = t
+	}
 	//PrintRevisionTagInfo(ctx, id.TagInfo)
 
 	sd, err := GetProxyStatusData(ctx, kubeClient)
+	if err != nil {
+		log.Error(err, "Couldn't update proxy status data")
+		return err
+	}
 	id.ProxyStatuses = sd
 	//PrintProxyStatusData(ctx, id.ProxyStatuses)
 
 	id.LastUpdate = time.Now()
+	log.Info("Updated Istio Data")
 
 	return err
 }

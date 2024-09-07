@@ -51,10 +51,14 @@ type NamespaceReconciler struct {
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	log.Info("Reconciling Namespace")
+	//log.Info("Reconciling Namespace")
 
-	r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
-	util.PrintRevisionTagInfo(ctx, r.IstioData.TagInfo)
+	err := r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	if err != nil {
+		log.Error(err, "Couldn't refresh istio data")
+		return ctrl.Result{}, nil
+	}
+	//r.IstioData.PrintRevisionTagInfo(ctx)
 
 	return ctrl.Result{}, nil
 }
