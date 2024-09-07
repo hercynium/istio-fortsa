@@ -105,6 +105,8 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, req ctrl.Request, kub
 	if id.LastUpdate.After(time.Now().Add(duration)) {
 		log.Info("Not updating istio data because not enough time has passed")
 		return nil
+	} else {
+		log.Info("Updating Istio Data...")
 	}
 
 	ti, err := GetRevisionTagInfo(ctx, kubeClient)
