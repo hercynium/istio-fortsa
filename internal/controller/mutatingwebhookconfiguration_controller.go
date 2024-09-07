@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -27,15 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
 )
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	kubeClient *kubernetes.Clientset
+	KubeClient *kubernetes.Clientset
+	IstioData  *util.IstioData
 }
 
 //+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
@@ -56,7 +56,11 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 
 	log.Info("Reconciling MutatingWebhookConfiguration")
 
-	util.ProcessIstioStatusData(ctx, req, r.kubeClient)
+	// if the istio tag on the namespace changed, we should restart the pods so the
+	// sidecar proxies can be configured to whatever the new tag value indicates.
+	//sd, _ := util.GetProxyStatusData(ctx, r.KubeClient)
+	//r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	util.PrintProxyStatusData(ctx, r.IstioData.ProxyStatuses)
 
 	var webHook admissionv1.MutatingWebhookConfiguration
 	if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
@@ -93,19 +97,19 @@ func onlyReconcileIstioWebhooks() predicate.Predicate {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MutatingWebhookConfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		panic(err.Error())
-	}
+	// kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
 
-	rec := &MutatingWebhookConfigurationReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		kubeClient: kubeClient,
-	}
+	// rec := &MutatingWebhookConfigurationReconciler{
+	// 	Client:     mgr.GetClient(),
+	// 	Scheme:     mgr.GetScheme(),
+	// 	KubeClient: kubeClient,
+	// }
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&admissionv1.MutatingWebhookConfiguration{}).
 		WithEventFilter(onlyReconcileIstioWebhooks()).
-		Complete(rec)
+		Complete(r)
 }

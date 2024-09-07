@@ -14,6 +14,7 @@
 
 package proxystatus
 
+/*
 import (
 	"bytes"
 	"context"
@@ -156,3 +157,4 @@ func init() {
 		return tf
 	}
 }
+*/

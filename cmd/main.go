@@ -23,6 +23,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,12 +36,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/controller"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
 	//+kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme    = runtime.NewScheme()
+	setupLog  = ctrl.Log.WithName("setup")
+	istioData = util.IstioData{}
 )
 
 func init() {
@@ -120,16 +123,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		panic(err.Error())
+	}
+
 	if err = (&controller.MutatingWebhookConfigurationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		KubeClient: kubeClient,
+		IstioData:  &istioData,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MutatingWebhookConfiguration")
 		os.Exit(1)
 	}
 	if err = (&controller.NamespaceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		KubeClient: kubeClient,
+		IstioData:  &istioData,
+		Recorder:   mgr.GetEventRecorderFor("namespace-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)

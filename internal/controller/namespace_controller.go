@@ -22,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -35,12 +36,15 @@ import (
 type NamespaceReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	kubeClient *kubernetes.Clientset
+	KubeClient *kubernetes.Clientset
+	Recorder   record.EventRecorder
+	IstioData  *util.IstioData
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -55,10 +59,10 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log := log.FromContext(ctx)
 
 	log.Info("Reconciling Namespace")
+	r.IstioData.RefreshIstioData(ctx, req, r.KubeClient)
+	util.PrintRevisionTagInfo(ctx, r.IstioData.TagInfo)
 
-	// if the istio tag on the namespace changed, we should restart the pods so the
-	// sidecar proxies can be configured to whatever the new tag value indicates.
-	util.ProcessIstioStatusData(ctx, req, r.kubeClient)
+	//r.Recorder.Event(nil, "Warning", "Deleting", "message")
 
 	return ctrl.Result{}, nil
 }
@@ -91,18 +95,17 @@ func onlyReconcileIstioLabelChange() predicate.Predicate {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		panic(err.Error())
-	}
-
-	rec := &NamespaceReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		kubeClient: kubeClient,
-	}
+	//kubeClient, err := kubernetes.NewForConfig(mgr.GetConfig())
+	//if err != nil {
+	//	panic(err.Error())
+	//}
+	// rec := &NamespaceReconciler{
+	// 	Client:     mgr.GetClient(),
+	// 	Scheme:     mgr.GetScheme(),
+	// 	KubeClient: kubeClient,
+	// }
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		WithEventFilter(onlyReconcileIstioLabelChange()).
-		Complete(rec)
+		Complete(r)
 }

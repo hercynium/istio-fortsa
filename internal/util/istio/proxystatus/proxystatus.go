@@ -15,7 +15,6 @@
 package proxystatus
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
@@ -29,9 +28,10 @@ import (
 	"istio.io/istio/istioctl/pkg/multixds"
 	"istio.io/istio/istioctl/pkg/root"
 	"istio.io/istio/istioctl/pkg/util"
-	"istio.io/istio/istioctl/pkg/version"
+	istioctlver "istio.io/istio/istioctl/pkg/version"
 	"istio.io/istio/istioctl/pkg/workload"
 	pilotxds "istio.io/istio/pilot/pkg/xds"
+	istiocmd "istio.io/istio/pkg/cmd"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
@@ -63,11 +63,6 @@ func GetProxyStatus() XDSResponses {
 	return <-xdsResponsesChannel
 }
 
-// AddFlags adds all command line flags to the given command.
-func AddFlags(rootCmd *cobra.Command) {
-	rootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-}
-
 // GetRootCmd returns the root of the cobra command-tree.
 func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Command {
 	rootCmd := &cobra.Command{
@@ -97,7 +92,7 @@ func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Com
 	// Attach the Istio logging options to the command.
 	root.LoggingOptions.AttachCobraFlags(rootCmd)
 
-	AddFlags(rootCmd)
+	istiocmd.AddFlags(rootCmd)
 
 	experimentalCmd := &cobra.Command{
 		Use:     "experimental",
@@ -107,13 +102,13 @@ func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Com
 
 	xdsBasedTroubleshooting := []*cobra.Command{
 		// TODO(hanxiaop): I think experimental version still has issues, so we keep the old version for now.
-		version.XdsVersionCommand(ctx),
+		istioctlver.XdsVersionCommand(ctx),
 		// TODO(hanxiaop): this is kept for some releases in case someone is using it.
 		//proxystatus.XdsStatusCommand(ctx),
 		XdsStatusCommand(ctx, xdsResponsesChannel),
 	}
 	troubleshootingCommands := []*cobra.Command{
-		version.NewVersionCommand(ctx),
+		istioctlver.NewVersionCommand(ctx),
 		//proxystatus.StableXdsStatusCommand(ctx),
 		StableXdsStatusCommand(ctx, xdsResponsesChannel),
 	}

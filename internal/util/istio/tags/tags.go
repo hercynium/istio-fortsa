@@ -28,7 +28,7 @@ const (
 	IstioTagLabel = "istio.io/tag"
 )
 
-type tagDescription struct {
+type TagDescription struct {
 	Tag        string   `json:"tag"`
 	Revision   string   `json:"revision"`
 	Namespaces []string `json:"namespaces"`
@@ -38,7 +38,7 @@ type uniqTag struct {
 	revision, tag string
 }
 
-func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescription, error) {
+func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]TagDescription, error) {
 	tagWebhooks, err := tag.GetRevisionWebhooks(ctx, kubeClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve revision tags: %v", err)
@@ -47,7 +47,7 @@ func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescrip
 		fmt.Printf("No Istio revision tag MutatingWebhookConfigurations to list\n")
 		return nil, nil
 	}
-	rawTags := map[uniqTag]tagDescription{}
+	rawTags := map[uniqTag]TagDescription{}
 	for _, wh := range tagWebhooks {
 		tagName := tag.GetWebhookTagName(wh)
 		tagRevision, err := tag.GetWebhookRevision(wh)
@@ -58,7 +58,7 @@ func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescrip
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving namespaces for tag %q: %v", tagName, err)
 		}
-		tagDesc := tagDescription{
+		tagDesc := TagDescription{
 			Tag:        tagName,
 			Revision:   tagRevision,
 			Namespaces: tagNamespaces,
@@ -75,7 +75,7 @@ func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]tagDescrip
 		}
 	}
 
-	tags := slices.SortFunc(maps.Values(rawTags), func(a, b tagDescription) int {
+	tags := slices.SortFunc(maps.Values(rawTags), func(a, b TagDescription) int {
 		if r := cmp.Compare(a.Revision, b.Revision); r != 0 {
 			return r
 		}
