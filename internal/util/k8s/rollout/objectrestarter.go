@@ -8,7 +8,10 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubectl/pkg/polymorphichelpers"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -36,7 +39,17 @@ const (
 
 // HandleRolloutRestart handles rollout restart of object by patching with annotation
 func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, managedByValue string, restartTimeInRFC3339 string) error {
-	// log := log.FromContext(ctx)
+	log := log.FromContext(ctx)
+
+	done, err := IsRolloutDone(ctx, client, obj)
+	if err != nil {
+		return err
+	}
+
+	if !done {
+		log.Info("Deployment is currently in a rollout. Skipping.")
+		return nil
+	}
 
 	switch t := obj.(type) {
 	case *appsv1.Deployment:
@@ -93,4 +106,18 @@ func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctr
 	default:
 		return fmt.Errorf(ErrorUnsupportedKind, t)
 	}
+}
+
+func IsRolloutDone(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
+	var revision int64
+	statusViewer, err := polymorphichelpers.StatusViewerFor(obj.GetObjectKind().GroupVersionKind().GroupKind())
+	if err != nil {
+		return false, err
+	}
+	status, done, err := statusViewer.Status(obj.(runtime.Unstructured), revision)
+	if err != nil {
+		return false, err
+	}
+	fmt.Printf("Status: %s", status)
+	return done, nil
 }
