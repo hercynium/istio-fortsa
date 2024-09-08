@@ -5,7 +5,6 @@ go 1.23.0
 require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	github.com/stretchr/testify v1.9.0
 	istio.io/istio v0.0.0-20240905203728-927fa55f2d56
 	k8s.io/api v0.31.0
 	k8s.io/apimachinery v0.31.0
@@ -104,6 +103,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vbatts/tar-split v0.11.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
