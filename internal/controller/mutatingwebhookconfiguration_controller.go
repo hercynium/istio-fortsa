@@ -87,6 +87,8 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
+	// the code below here should go into another controller, one that triggers on the pods being labeled
+	// with our "outdated" label
 	for _, pod := range oldPods {
 		pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
 		if err != nil {

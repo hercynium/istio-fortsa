@@ -21,4 +21,8 @@ resources:
   kind: Namespace
   path: k8s.io/api/core/v1
   version: v1
+- controller: true
+  domain: cloudera.com
+  kind: Pod
+  version: v1
 version: "3"

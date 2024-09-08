@@ -1,19 +1,6 @@
-/*
-Copyright 2018 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package rollout
+
+// code in this package modified from https://github.com/rickslick/autorollout-operator
 
 import (
 	"context"
@@ -21,31 +8,8 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/genericiooptions"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubectl/pkg/cmd/rollout"
-	cmdtesting "k8s.io/kubectl/pkg/cmd/testing"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func DoRestartDeployment(namespace string, kubeClient *kubernetes.Clientset, obj runtime.Object) error {
-
-	deploymentName := "deployment/nginx-deployment"
-	tf := cmdtesting.NewTestFactory().WithNamespace("test")
-
-	//cmdutil.NewMatchVersionFlags()
-	//cf := cmdutil.NewFactory(restClientGetter)
-
-	tf.Client = kubeClient.RESTClient()
-	streams, _, _, _ := genericiooptions.NewTestIOStreams()
-
-	cmd := rollout.NewCmdRolloutRestart(tf, streams)
-
-	cmd.Run(cmd, []string{deploymentName})
-
-	return nil
-}
 
 const (
 	ReasonRolloutRestartFailed      = "RolloutRestartFailed"
