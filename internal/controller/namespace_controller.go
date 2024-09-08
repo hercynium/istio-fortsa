@@ -35,9 +35,10 @@ import (
 // NamespaceReconciler reconciles a Namespace object
 type NamespaceReconciler struct {
 	client.Client
+	util.ICUPReconciler
 	Scheme     *runtime.Scheme
-	KubeClient *kubernetes.Clientset
 	Recorder   record.EventRecorder
+	KubeClient *kubernetes.Clientset
 	IstioData  *util.IstioData
 }
 

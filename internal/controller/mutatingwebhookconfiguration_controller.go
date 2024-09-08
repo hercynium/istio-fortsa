@@ -18,10 +18,12 @@ package controller
 
 import (
 	"context"
+	"time"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,14 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s/rollout"
 )
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
+	util.ICUPReconciler
 	Scheme     *runtime.Scheme
-	KubeClient *kubernetes.Clientset
 	Recorder   record.EventRecorder
+	KubeClient *kubernetes.Clientset
 	IstioData  *util.IstioData
 }
 
@@ -59,16 +66,57 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		return ctrl.Result{}, nil
 	}
 	//r.IstioData.PrintProxyStatusData(ctx)
-	/*
-		var webHook admissionv1.MutatingWebhookConfiguration
-		if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
-			log.Error(err, "unable to fetch MutatingWebhookConfiguration")
-			// we'll ignore not-found errors, since they can't be fixed by an immediate
-			// requeue (we'll need to wait for a new notification), and we can get them
-			// on deleted requests.
-			return ctrl.Result{}, client.IgnoreNotFound(err)
+
+	var webHook admissionv1.MutatingWebhookConfiguration
+	if err := r.Get(ctx, req.NamespacedName, &webHook); err != nil {
+		log.Error(err, "unable to fetch MutatingWebhookConfiguration")
+		// we'll ignore not-found errors, since they can't be fixed by an immediate
+		// requeue (we'll need to wait for a new notification), and we can get them
+		// on deleted requests.
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	err, oldPods := r.IstioData.CheckProxiedPods(ctx, r.KubeClient)
+	if err != nil {
+		log.Error(err, "Error checking proxied pods")
+		return ctrl.Result{}, err
+	}
+	err = r.LabelPodsOutdated(ctx, oldPods)
+	if err != nil {
+		log.Error(err, "Error labelling outdated pods")
+		return ctrl.Result{}, err
+	}
+
+	for _, pod := range oldPods {
+		pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
+		if err != nil {
+			log.Error(err, "Error finding controller for pod", "pod-name", pod.Name)
+			return ctrl.Result{}, err
 		}
-	*/
+		rollout.HandleRolloutRestart(ctx, r.Client, pc, "CHANGEME", time.Now().Format(time.RFC3339))
+		if err != nil {
+			log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
+			return ctrl.Result{}, err
+		}
+	}
+
+	// just for testing below
+	foo := types.NamespacedName{
+		Namespace: "istio-system",
+		Name:      "kiali",
+	}
+	bar := &appsv1.Deployment{}
+	err = r.Client.Get(ctx, foo, bar)
+	if err != nil {
+		log.Error(err, "Error getting dummy deployment")
+		return ctrl.Result{}, err
+	}
+	err = rollout.HandleRolloutRestart(ctx, r.Client, bar, "CHANGEME", time.Now().Format(time.RFC3339))
+	if err != nil {
+		log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
