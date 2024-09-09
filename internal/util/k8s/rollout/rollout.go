@@ -51,6 +51,9 @@ func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctr
 		return nil
 	}
 
+	// TODO: refactor - make a set of functions that, for each type, extracts a pointer to the object's
+	// t.Spec.Template. Then in here we can simply have one block of code to set the annotation and issue
+	// the client.Patch on t... I think that should work...
 	switch t := obj.(type) {
 	case *appsv1.Deployment:
 		patch := ctrlclient.StrategicMergeFrom(t.DeepCopy())
