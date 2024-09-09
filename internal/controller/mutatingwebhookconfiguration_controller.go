@@ -63,7 +63,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 	}
 	//r.IstioData.PrintProxyStatusData(ctx)
 
-	err, oldPods := r.IstioData.CheckProxiedPods(ctx, r.KubeClient)
+	oldPods, err := r.IstioData.CheckProxiedPods(ctx, r.KubeClient)
 	if err != nil {
 		log.Error(err, "Error checking proxied pods")
 		return ctrl.Result{}, err

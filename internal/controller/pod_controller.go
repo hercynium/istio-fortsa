@@ -90,7 +90,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	// this will never run (re-enable later)
 	if time.Now().String() == "" {
-		rollout.HandleRolloutRestart(ctx, r.Client, pc, "CHANGEME", time.Now().Format(time.RFC3339))
+		err := rollout.HandleRolloutRestart(ctx, r.Client, pc, "CHANGEME", time.Now().Format(time.RFC3339))
 		if err != nil {
 			log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
 			return ctrl.Result{}, err
