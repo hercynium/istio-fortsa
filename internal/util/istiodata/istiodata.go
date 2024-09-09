@@ -116,6 +116,7 @@ func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes
 		if confRev == "" {
 			continue // skip if namespace isn't labeled with a revision
 		}
+		// TODO: might be useful to check pod for sidecar.istio.io/inject=false and skip those?
 		if confRev != ps.IstiodRevision {
 			log.Info("Outdated Pod Found", "pod", ps.ProxiedPodName, "ns", ps.ProxiedPodNamespace, "proxyIstioRev", ps.IstiodRevision, "nsIstioRev", confRev)
 			// TODO: here is where we label the pod

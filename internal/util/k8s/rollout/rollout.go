@@ -28,7 +28,7 @@ const (
 
 const (
 	AnnotationFlipperRestartedAt = "flipper.ricktech.io/restartedAt"
-	RolloutRestartAnnotation     = "kubectl.kubernetes.io/restartedAt"
+	RolloutRestartAnnotation     = "ipuc.cloudera.com/restartedAt"
 	RolloutManagedBy             = "flipper.ricktech.io/managedBy"
 	rolloutIntervalGroupName     = "flipper.ricktech.io/IntervalGroup"
 )
@@ -51,22 +51,20 @@ func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctr
 		return nil
 	}
 
+	if restartTimeInRFC3339 == "" {
+		restartTimeInRFC3339 = time.Now().Format(time.RFC3339)
+	}
+
 	// TODO: refactor - make a set of functions that, for each type, extracts a pointer to the object's
 	// t.Spec.Template. Then in here we can simply have one block of code to set the annotation and issue
 	// the client.Patch on t... I think that should work...
+	// see here for an example: https://github.com/stakater/Reloader/blob/master/internal/pkg/callbacks/rolling_upgrade.go#L211
 	switch t := obj.(type) {
 	case *appsv1.Deployment:
 		patch := ctrlclient.StrategicMergeFrom(t.DeepCopy())
 		if t.Spec.Template.ObjectMeta.Annotations == nil {
 			t.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-
-		t.Annotations[RolloutManagedBy] = managedByValue
-		if restartTimeInRFC3339 == "" {
-			restartTimeInRFC3339 = time.Now().Format(time.RFC3339)
-		}
-
-		t.Annotations[AnnotationFlipperRestartedAt] = restartTimeInRFC3339
 		t.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInRFC3339
 
 		//TODO exponential backoff maybe use thirdparty lib ?
@@ -77,13 +75,6 @@ func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctr
 		if t.Spec.Template.ObjectMeta.Annotations == nil {
 			t.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-
-		t.Annotations[RolloutManagedBy] = managedByValue
-		if restartTimeInRFC3339 == "" {
-			restartTimeInRFC3339 = time.Now().Format(time.RFC3339)
-		}
-
-		t.Annotations[AnnotationFlipperRestartedAt] = restartTimeInRFC3339
 		t.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInRFC3339
 
 		//TODO exponential backoff maybe use thirdparty lib ?
@@ -96,10 +87,6 @@ func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctr
 		}
 
 		t.Annotations[RolloutManagedBy] = managedByValue
-		if restartTimeInRFC3339 == "" {
-			restartTimeInRFC3339 = time.Now().Format(time.RFC3339)
-		}
-
 		t.Annotations[AnnotationFlipperRestartedAt] = restartTimeInRFC3339
 		t.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInRFC3339
 
