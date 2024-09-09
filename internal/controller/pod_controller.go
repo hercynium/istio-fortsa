@@ -20,8 +20,11 @@ import (
 	"context"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,24 +59,42 @@ type PodReconciler struct {
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
+	log.Info("Reconciling pod", "pod-name", req.NamespacedName)
+
+	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	if err != nil {
+		log.Error(err, "Couldn't load pod")
+		return ctrl.Result{}, err
+	}
+
+	pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
+	if err != nil {
+		log.Error(err, "Error finding controller for pod", "pod-name", pod.Name)
+		return ctrl.Result{}, err
+	}
+
 	// this will never run (re-enable later)
 	if time.Now().String() == "" {
-		pod := &corev1.Pod{}
-		err := r.Client.Get(ctx, req.NamespacedName, pod)
-		if err != nil {
-			log.Error(err, "Couldn't load pod")
-			return ctrl.Result{}, err
-		}
-
-		pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
-		if err != nil {
-			log.Error(err, "Error finding controller for pod", "pod-name", pod.Name)
-			return ctrl.Result{}, err
-		}
-
 		rollout.HandleRolloutRestart(ctx, r.Client, pc, "CHANGEME", time.Now().Format(time.RFC3339))
 		if err != nil {
 			log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
+			return ctrl.Result{}, err
+		}
+
+		// just for testing below
+		foo := types.NamespacedName{
+			Namespace: "istio-system",
+			Name:      "kiali",
+		}
+		bar := &appsv1.Deployment{}
+		err = r.Client.Get(ctx, foo, bar)
+		if err != nil {
+			log.Error(err, "Error getting dummy deployment")
+			return ctrl.Result{}, err
+		}
+		err = rollout.HandleRolloutRestart(ctx, r.Client, bar, "CHANGEME", time.Now().Format(time.RFC3339))
+		if err != nil {
+			log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
 			return ctrl.Result{}, err
 		}
 	}

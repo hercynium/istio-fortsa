@@ -150,8 +150,11 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.PodReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		KubeClient: kubeClient,
+		IstioData:  &istioData, // pointer because multiple controllers share the data
+		Recorder:   mgr.GetEventRecorderFor("istio-proxy-update-controller/pod-reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		os.Exit(1)

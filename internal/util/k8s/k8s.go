@@ -14,7 +14,6 @@ package k8s
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -47,7 +46,7 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 		return nil, err
 	}
 
-	// find the controller
+	// find the top-level controller
 
 	controller, err := getPodController(dynamic, ctx, res)
 	if err != nil {
@@ -55,6 +54,7 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 		return nil, err
 	}
 
+	log.Info("Found controller for outdated pod", "pod-name", pod.Name, "controller-name", controller.GetName())
 	return controller, nil
 }
 
@@ -68,7 +68,7 @@ func getPodController(dynamic dynamic.Interface, ctx context.Context,
 				Version:  apiParts[1],
 				Resource: strings.ToLower(oRef.Kind) + "s",
 			}
-			fmt.Printf("Looking for: [%v, %v]\n", oRef.APIVersion, oRef.Kind)
+			//fmt.Printf("Looking for controller kind: [%v, %v]\n", oRef.APIVersion, oRef.Kind)
 			owner, err = dynamic.Resource(resourceId).Namespace(obj.GetNamespace()).Get(ctx, oRef.Name, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
