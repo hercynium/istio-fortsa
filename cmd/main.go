@@ -37,14 +37,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/controller"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
 	//+kubebuilder:scaffold:imports
 )
 
 var (
 	scheme    = runtime.NewScheme()
 	setupLog  = ctrl.Log.WithName("setup")
-	istioData = util.IstioData{}
+	istioData = istiodata.IstioData{}
 )
 
 func init() {

@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s"
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s/rollout"
 )
@@ -45,7 +46,7 @@ type PodReconciler struct {
 	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	KubeClient *kubernetes.Clientset
-	IstioData  *util.IstioData
+	IstioData  *istiodata.IstioData
 }
 
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -60,6 +61,20 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	log := log.FromContext(ctx)
 
 	log.Info("Reconciling pod", "pod-name", req.NamespacedName)
+
+	var podIsOutdated bool = false
+	for _, ps := range r.IstioData.ProxyStatuses {
+		if ps.ProxiedPodNamespace == req.Namespace && ps.ProxiedPodName == req.Name {
+			podIsOutdated = true
+			log.Info("Pod is outdated")
+			break
+		}
+	}
+
+	if !podIsOutdated {
+		log.Info("Pod is not outdated")
+		return ctrl.Result{}, nil
+	}
 
 	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
 )
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
@@ -39,7 +40,7 @@ type MutatingWebhookConfigurationReconciler struct {
 	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	KubeClient *kubernetes.Clientset
-	IstioData  *util.IstioData
+	IstioData  *istiodata.IstioData
 }
 
 //+kubebuilder:rbac:groups=core,resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
