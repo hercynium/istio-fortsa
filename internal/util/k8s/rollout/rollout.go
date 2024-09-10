@@ -30,8 +30,8 @@ const (
 	ErrorUnsupportedKind = "unsupported Kind %v"
 )
 
-// HandleRolloutRestart handles rollout restart of object by patching with annotation
-func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, restartTimeInRFC3339 string) error {
+// DoRolloutRestart handles rollout restart of object by patching with annotation
+func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, restartTimeInRFC3339 string) error {
 	log := log.FromContext(ctx)
 
 	done, err := IsRolloutDone(ctx, client, obj)
