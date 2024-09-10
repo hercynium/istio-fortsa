@@ -68,6 +68,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		log.Error(err, "Error checking proxied pods")
 		return ctrl.Result{}, err
 	}
+
 	err = r.LabelPodsOutdated(ctx, oldPods)
 	if err != nil {
 		log.Error(err, "Error labelling outdated pods")

@@ -28,7 +28,6 @@ import (
 	"istio.io/istio/istioctl/pkg/multixds"
 	"istio.io/istio/istioctl/pkg/root"
 	"istio.io/istio/istioctl/pkg/util"
-	istioctlver "istio.io/istio/istioctl/pkg/version"
 	"istio.io/istio/istioctl/pkg/workload"
 	pilotxds "istio.io/istio/pilot/pkg/xds"
 	istiocmd "istio.io/istio/pkg/cmd"
@@ -78,17 +77,6 @@ func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Com
 
 	ctx := cli.NewCLIContext(rootOptions)
 
-	_ = rootCmd.RegisterFlagCompletionFunc(cli.FlagIstioNamespace, func(
-		cmd *cobra.Command, args []string, toComplete string,
-	) ([]string, cobra.ShellCompDirective) {
-		return completion.ValidNamespaceArgs(cmd, ctx, args, toComplete)
-	})
-	_ = rootCmd.RegisterFlagCompletionFunc(cli.FlagNamespace, func(
-		cmd *cobra.Command, args []string, toComplete string,
-	) ([]string, cobra.ShellCompDirective) {
-		return completion.ValidNamespaceArgs(cmd, ctx, args, toComplete)
-	})
-
 	// Attach the Istio logging options to the command.
 	root.LoggingOptions.AttachCobraFlags(rootCmd)
 
@@ -101,19 +89,12 @@ func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Com
 	}
 
 	xdsBasedTroubleshooting := []*cobra.Command{
-		// TODO(hanxiaop): I think experimental version still has issues, so we keep the old version for now.
-		istioctlver.XdsVersionCommand(ctx),
-		// TODO(hanxiaop): this is kept for some releases in case someone is using it.
-		//proxystatus.XdsStatusCommand(ctx),
 		XdsStatusCommand(ctx, xdsResponsesChannel),
 	}
 	troubleshootingCommands := []*cobra.Command{
-		istioctlver.NewVersionCommand(ctx),
-		//proxystatus.StableXdsStatusCommand(ctx),
 		StableXdsStatusCommand(ctx, xdsResponsesChannel),
 	}
-	var debugCmdAttachmentPoint *cobra.Command
-	debugCmdAttachmentPoint = rootCmd
+	var debugCmdAttachmentPoint *cobra.Command = rootCmd
 
 	for _, c := range xdsBasedTroubleshooting {
 		experimentalCmd.AddCommand(c)

@@ -5,8 +5,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -15,9 +13,7 @@ import (
 
 type ICUPReconciler struct {
 	client.Client
-	Scheme     *runtime.Scheme
-	KubeClient *kubernetes.Clientset
-	IstioData  *istiodata.IstioData
+	IstioData *istiodata.IstioData
 }
 
 func (r *ICUPReconciler) LabelPodsOutdated(ctx context.Context, oldPods []*corev1.Pod) error {
