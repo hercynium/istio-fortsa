@@ -73,32 +73,33 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	// this will never run (re-enable later)
-	if time.Now().String() == "" {
-		err := rollout.DoRolloutRestart(ctx, r.Client, pc, time.Now().Format(time.RFC3339))
+	//if time.Now().String() == "" {
+	err = rollout.DoRolloutRestart(ctx, r.Client, pc, time.Now().Format(time.RFC3339))
+	if err != nil {
+		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
+		return ctrl.Result{}, err
+	}
+
+	/*
+		// just for testing below
+		foo := types.NamespacedName{
+			Namespace: "istio-system",
+			Name:      "kiali",
+		}
+		bar := &appsv1.Deployment{}
+		err = r.Client.Get(ctx, foo, bar)
 		if err != nil {
-			log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
+			log.Error(err, "Error getting dummy deployment")
 			return ctrl.Result{}, err
 		}
-
-		/* 		// just for testing below
-		   		foo := types.NamespacedName{
-		   			Namespace: "istio-system",
-		   			Name:      "kiali",
-		   		}
-		   		bar := &appsv1.Deployment{}
-		   		err = r.Client.Get(ctx, foo, bar)
-		   		if err != nil {
-		   			log.Error(err, "Error getting dummy deployment")
-		   			return ctrl.Result{}, err
-		   		}
-		   		err = rollout.DoRolloutRestart(ctx, r.Client, bar, time.Now().Format(time.RFC3339))
-		   		if err != nil {
-		   			log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
-		   			return ctrl.Result{}, err
-		   		}
-		   		// just for testing above
-		*/
-	}
+		err = rollout.DoRolloutRestart(ctx, r.Client, bar, time.Now().Format(time.RFC3339))
+		if err != nil {
+			log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
+			return ctrl.Result{}, err
+		}
+		// just for testing above
+	*/
+	//}
 
 	return ctrl.Result{}, nil
 }
