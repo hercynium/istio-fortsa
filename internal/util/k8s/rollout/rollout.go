@@ -31,7 +31,7 @@ const (
 )
 
 // HandleRolloutRestart handles rollout restart of object by patching with annotation
-func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, managedByValue string, restartTimeInRFC3339 string) error {
+func HandleRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, restartTimeInRFC3339 string) error {
 	log := log.FromContext(ctx)
 
 	done, err := IsRolloutDone(ctx, client, obj)

@@ -62,20 +62,6 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	log.Info("Reconciling pod", "pod-name", req.NamespacedName)
 
-	var podIsOutdated bool = false
-	for _, ps := range r.IstioData.ProxyStatuses {
-		if ps.ProxiedPodNamespace == req.Namespace && ps.ProxiedPodName == req.Name {
-			podIsOutdated = true
-			log.Info("Pod is outdated")
-			break
-		}
-	}
-
-	if !podIsOutdated {
-		log.Info("Pod is not outdated")
-		return ctrl.Result{}, nil
-	}
-
 	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		log.Error(err, "Couldn't load pod")
@@ -90,7 +76,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	// this will never run (re-enable later)
 	if time.Now().String() == "" {
-		err := rollout.HandleRolloutRestart(ctx, r.Client, pc, "CHANGEME", time.Now().Format(time.RFC3339))
+		err := rollout.HandleRolloutRestart(ctx, r.Client, pc, time.Now().Format(time.RFC3339))
 		if err != nil {
 			log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
 			return ctrl.Result{}, err
@@ -107,7 +93,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			log.Error(err, "Error getting dummy deployment")
 			return ctrl.Result{}, err
 		}
-		err = rollout.HandleRolloutRestart(ctx, r.Client, bar, "CHANGEME", time.Now().Format(time.RFC3339))
+		err = rollout.HandleRolloutRestart(ctx, r.Client, bar, time.Now().Format(time.RFC3339))
 		if err != nil {
 			log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
 			return ctrl.Result{}, err
