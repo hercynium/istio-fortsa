@@ -171,11 +171,6 @@ func XdsStatusCommand(ctx cli.Context, xdsResponsesChannel chan XDSResponses) *c
 			xdsResponsesChannel <- xdsResponses
 
 			return nil
-			// sw := pilot.XdsStatusWriter{
-			// 	Writer:    c.OutOrStdout(),
-			// 	Namespace: ctx.Namespace(),
-			// }
-			// return sw.PrintAll(xdsResponses)
 		},
 		ValidArgsFunction: completion.ValidPodsNameArgs(ctx),
 	}
