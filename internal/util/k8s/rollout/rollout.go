@@ -9,8 +9,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -31,20 +29,6 @@ const (
 const (
 	ErrorUnsupportedKind = "unsupported Kind %v"
 )
-
-func newClient() (dynamic.Interface, error) {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	dynClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return dynClient, nil
-}
 
 // DoRolloutRestart handles rollout restart of object by patching with annotation
 func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, restartTimeInNanos string) error {
