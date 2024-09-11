@@ -43,15 +43,38 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		return nil
 	}
 
-	// TODO: figure out how to properly handle different object types, like DaemonSets
-	objX := &appsv1.Deployment{}
-	client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
-	patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
-	if objX.Spec.Template.ObjectMeta.Annotations == nil {
-		objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	// TODO: figure out how to properly handle different object types, not like this...
+	switch obj.GetObjectKind().GroupVersionKind().Kind {
+	case "Deployment":
+		objX := &appsv1.Deployment{}
+		client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
+		if objX.Spec.Template.ObjectMeta.Annotations == nil {
+			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		return client.Patch(ctx, objX, patch)
+	case "DaemonSet":
+		objX := &appsv1.DaemonSet{}
+		client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
+		if objX.Spec.Template.ObjectMeta.Annotations == nil {
+			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		return client.Patch(ctx, objX, patch)
+	case "StatefulSet":
+		objX := &appsv1.StatefulSet{}
+		client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
+		if objX.Spec.Template.ObjectMeta.Annotations == nil {
+			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		return client.Patch(ctx, objX, patch)
+	default:
+		return fmt.Errorf(ErrorUnsupportedKind, obj.GetObjectKind().GroupVersionKind().Kind)
 	}
-	objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
-	return client.Patch(ctx, objX, patch)
 
 	// TODO: refactor - make a set of functions that, for each type, extracts a pointer to the object's
 	// t.Spec.Template. Then in here we can simply have one block of code to set the annotation and issue
