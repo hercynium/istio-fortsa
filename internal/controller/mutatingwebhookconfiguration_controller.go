@@ -69,7 +69,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
-	err = r.LabelPodsOutdated(ctx, oldPods)
+	err = r.LabelPodsOutdated(ctx, r.KubeClient, oldPods)
 	if err != nil {
 		log.Error(err, "Error labelling outdated pods")
 		return ctrl.Result{}, err

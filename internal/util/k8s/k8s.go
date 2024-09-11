@@ -42,7 +42,8 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 
 	res, err := dynamic.Resource(resourceId).Namespace(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
-		log.Error(err, "Couldn't find outdated pod")
+		// TODO: handle pod not found error
+		log.Info("Couldn't find outdated pod", "err", err)
 		return nil, err
 	}
 
@@ -50,7 +51,7 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 
 	controller, err := getPodController(dynamic, ctx, res)
 	if err != nil {
-		log.Error(err, "Couldn't find controller of outdated pod")
+		log.Info("Couldn't find controller of outdated pod", "err", err)
 		return nil, err
 	}
 

@@ -74,7 +74,6 @@ func GetRootCmd(args []string, xdsResponsesChannel chan XDSResponses) *cobra.Com
 
 	flags := rootCmd.PersistentFlags()
 	rootOptions := cli.AddRootFlags(flags)
-
 	ctx := cli.NewCLIContext(rootOptions)
 
 	// Attach the Istio logging options to the command.

@@ -107,10 +107,10 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernete
 }
 
 // TODO: allow passing namespace to limit search to one namespace? Would be useful to call from namespace controller
-func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes.Clientset) ([]*corev1.Pod, error) {
+func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes.Clientset) ([]corev1.Pod, error) {
 	log := log.FromContext(ctx)
 	log.Info("Checking proxied pods")
-	var oldPods = []*corev1.Pod{}
+	var oldPods = []corev1.Pod{}
 	for _, ps := range r.ProxyStatuses {
 		confRev := r.RevisionsByNamespace[ps.ProxiedPodNamespace]
 		if confRev == "" {
@@ -125,7 +125,7 @@ func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes
 				log.Error(err, "Couldn't retrieve pod from api")
 				return nil, err
 			}
-			oldPods = append(oldPods, pod)
+			oldPods = append(oldPods, *pod)
 		}
 	}
 	return oldPods, nil

@@ -32,7 +32,23 @@ const (
 
 	certmanagerVersion = "v1.14.4"
 	certmanagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
+
+	istio1Version      = "1.22.4"
+	istioHelmChartRepo = "https://istio-release.storage.googleapis.com/charts"
+	istio2Version      = "1.23.1"
 )
+
+/*
+kind delete cluster
+kind create cluster --config kind-config.yaml
+
+kubectl create ns istio-system
+
+helm install istio-base-v1-22-4   https://istio-release.storage.googleapis.com/charts/base-1.22.4.tgz   -n istio-system  --set revision=test-1
+helm install istio-istiod-v1-22-4 https://istio-release.storage.googleapis.com/charts/istiod-1.22.4.tgz -n istio-system --set pilot.resources.requests.cpu=100m --set pilot.resources.requests.memory=128m --set revision=test-1
+helm install istio-istiod-v1-23-1 https://istio-release.storage.googleapis.com/charts/istiod-1.23.1.tgz -n istio-system --set pilot.resources.requests.cpu=100m --set pilot.resources.requests.memory=256m --set revision=test-2
+
+*/
 
 func warnError(err error) {
 	fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)

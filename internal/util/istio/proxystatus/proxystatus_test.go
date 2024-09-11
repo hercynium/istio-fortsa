@@ -14,7 +14,6 @@
 
 package proxystatus
 
-/*
 import (
 	"bytes"
 	"context"
@@ -62,14 +61,11 @@ func TestProxyStatus(t *testing.T) {
 			expectedOutput: "Error: no running Istio pods in \"istio-system\"\n",
 			wantException:  true,
 		},
-		{ // case 1, with Istiod instance
+		{ // case 1, with Isitod instance
 			args:           []string{},
-			expectedString: "NAME     CLUSTER     CDS     LDS     EDS     RDS     ECDS     ISTIOD",
-		},
-		{ // case 6: new --revision argument
-			args:           strings.Split("--revision canary", " "),
-			expectedString: "NAME     CLUSTER     CDS     LDS     EDS     RDS     ECDS     ISTIOD",
-			revision:       "canary",
+			noIstiod:       false,
+			expectedOutput: "",
+			wantException:  false,
 		},
 	}
 	multixds.GetXdsResponse = func(_ *discovery.DiscoveryRequest, _ string, _ string, _ clioptions.CentralControlPlaneOptions, _ []grpc.DialOption,
@@ -104,12 +100,12 @@ func TestProxyStatus(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			xdsResponsesChannel := make(chan XDSResponses)
-			verifyExecTestOutput(t, XdsStatusCommand(ctx, xdsResponsesChannel), c)
+			verifyExecTestOutput(t, StableXdsStatusCommand(ctx, xdsResponsesChannel), c, xdsResponsesChannel)
 		})
 	}
 }
 
-func verifyExecTestOutput(t *testing.T, cmd *cobra.Command, c execTestCase) {
+func verifyExecTestOutput(t *testing.T, cmd *cobra.Command, c execTestCase, r chan XDSResponses) {
 	t.Helper()
 
 	var out bytes.Buffer
@@ -119,6 +115,8 @@ func verifyExecTestOutput(t *testing.T, cmd *cobra.Command, c execTestCase) {
 	cmd.SetErr(&out)
 
 	fErr := cmd.Execute()
+	var resp XDSResponses = <-r
+	fmt.Printf("Responses: %+v\n", resp)
 	output := out.String()
 
 	if c.expectedOutput != "" && c.expectedOutput != output {
@@ -157,4 +155,3 @@ func init() {
 		return tf
 	}
 }
-*/

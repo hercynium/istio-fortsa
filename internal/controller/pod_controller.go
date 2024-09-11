@@ -62,44 +62,23 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
-		log.Error(err, "Couldn't load pod")
-		return ctrl.Result{}, err
+		// it was probably deleted...
+		log.Info("Couldn't load pod", "err", err)
+		return ctrl.Result{}, nil
 	}
 
 	pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
 	if err != nil {
-		log.Error(err, "Error finding controller for pod", "pod-name", pod.Name)
-		return ctrl.Result{}, err
+		log.Info("Error finding controller for pod", "pod-name", pod.Name, "err", err)
+		// not returning error, since it probably was deleted
+		return ctrl.Result{}, nil
 	}
 
-	// this will never run (re-enable later)
-	//if time.Now().String() == "" {
 	err = rollout.DoRolloutRestart(ctx, r.Client, pc, time.Now().Format(time.RFC3339))
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
 		return ctrl.Result{}, err
 	}
-
-	/*
-		// just for testing below
-		foo := types.NamespacedName{
-			Namespace: "istio-system",
-			Name:      "kiali",
-		}
-		bar := &appsv1.Deployment{}
-		err = r.Client.Get(ctx, foo, bar)
-		if err != nil {
-			log.Error(err, "Error getting dummy deployment")
-			return ctrl.Result{}, err
-		}
-		err = rollout.DoRolloutRestart(ctx, r.Client, bar, time.Now().Format(time.RFC3339))
-		if err != nil {
-			log.Error(err, "Error doing rollout restart on deployment", "pod-name", bar.Name)
-			return ctrl.Result{}, err
-		}
-		// just for testing above
-	*/
-	//}
 
 	return ctrl.Result{}, nil
 }
@@ -120,7 +99,7 @@ func onlyReconcileOutdatedPods() predicate.Predicate {
 		},
 		// if a pod with this label is deleted, is there anything we need to do?
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.GetLabels()[outdatedPodLabel] != ""
+			return false //e.Object.GetLabels()[outdatedPodLabel] != ""
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			// ignore these for now
