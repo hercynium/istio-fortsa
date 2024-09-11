@@ -45,7 +45,7 @@ func GetTags(ctx context.Context, kubeClient kubernetes.Interface) ([]TagDescrip
 	}
 	if len(tagWebhooks) == 0 {
 		fmt.Printf("No Istio revision tag MutatingWebhookConfigurations to list\n")
-		return nil, nil
+		return []TagDescription{}, nil
 	}
 	rawTags := map[uniqTag]TagDescription{}
 	for _, wh := range tagWebhooks {
