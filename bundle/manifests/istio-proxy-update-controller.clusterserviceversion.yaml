@@ -1,0 +1,46 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    createdAt: "2024-09-11T20:41:36Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: istio-proxy-update-controller.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions: {}
+  description: Restarts Outdated Istio-Proxied Pods
+  displayName: istio-proxy-update-controller
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: []
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - istio
+  - automation
+  - operations
+  links:
+  - name: Istio Proxy Update Controller
+    url: https://istio-proxy-update-controller.domain
+  maintainers:
+  - email: sscaffidi@cloudera.com
+    name: Steve Scaffidi
+  maturity: alpha
+  provider:
+    name: cloudera.com
+  version: 0.0.1

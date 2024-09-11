@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,7 +73,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	err = rollout.DoRolloutRestart(ctx, r.Client, pc, time.Now().Format(time.RFC3339))
+	err = rollout.DoRolloutRestart(ctx, r.Client, pc)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
 		return ctrl.Result{}, err

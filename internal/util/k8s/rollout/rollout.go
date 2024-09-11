@@ -5,6 +5,7 @@ package rollout
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,15 +27,11 @@ const (
 	RolloutRestartAnnotation = "ipuc.cloudera.com/restartedAt"
 )
 
-const (
-	ErrorUnsupportedKind = "unsupported Kind %v"
-)
-
 // DoRolloutRestart handles rollout restart of object by patching with annotation
-func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, restartTimeInNanos string) error {
+func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) error {
 	log := log.FromContext(ctx)
 
-	done, err := IsRolloutDone(ctx, client, obj)
+	done, err := IsRolloutReady(ctx, client, obj)
 	if err != nil {
 		return err
 	}
@@ -42,6 +39,8 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		log.Info("Deployment is currently in a rollout. Skipping.")
 		return nil
 	}
+
+	restartTimeInNanos := time.Now().Format(time.RFC3339)
 
 	// TODO: figure out how to properly handle different object types, not like this...
 	switch obj.GetObjectKind().GroupVersionKind().Kind {
@@ -73,13 +72,13 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
 		return client.Patch(ctx, objX, patch)
 	default:
-		return fmt.Errorf(ErrorUnsupportedKind, obj.GetObjectKind().GroupVersionKind().Kind)
+		return fmt.Errorf("unsupported Kind %v for rollout restart", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 }
 
 // we only want to issue a rollout when any previous rollout is done. any other status -
 // error, in-progress, whatever, and we don't want to do another rollout automatically.
-func IsRolloutDone(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
+func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
 	var revision int64
 	statusViewer, err := polymorphichelpers.StatusViewerFor(obj.GetObjectKind().GroupVersionKind().GroupKind())
 	if err != nil {
