@@ -97,7 +97,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func onlyReconcileOutdatedPods() predicate.Predicate {
 	outdatedPodLabel := util.PodOutdatedLabel
 	return predicate.Funcs{
-		// on controller start, we get create events, so check the pods
+		// on controller start, we get create events, so reconcile only those with the outdated label set
 		CreateFunc: func(e event.CreateEvent) bool {
 			return e.Object.GetLabels()[outdatedPodLabel] != ""
 		},

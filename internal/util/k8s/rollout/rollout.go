@@ -79,6 +79,7 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 // we only want to issue a rollout when any previous rollout is done. any other status -
 // error, in-progress, whatever, and we don't want to do another rollout automatically.
 func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
+	log := log.FromContext(ctx)
 	var revision int64
 	statusViewer, err := polymorphichelpers.StatusViewerFor(obj.GetObjectKind().GroupVersionKind().GroupKind())
 	if err != nil {
@@ -88,6 +89,6 @@ func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclien
 	if err != nil {
 		return false, err
 	}
-	fmt.Printf("Status: %s", status)
+	log.Info("Rollout readiness checked", "RolloutStatus", status)
 	return done, nil
 }
