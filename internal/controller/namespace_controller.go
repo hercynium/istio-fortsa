@@ -88,7 +88,7 @@ func onlyReconcileIstioLabelChange() predicate.Predicate {
 	duration, _ := time.ParseDuration("-10m")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			// only reconcile if the label exists and is not empty
+			// only reconcile if recently created and the label is not empty
 			return e.Object.GetCreationTimestamp().After(time.Now().Add(duration)) &&
 				e.Object.GetLabels()[tags.IstioRevisionLabel] != ""
 		},
