@@ -122,12 +122,13 @@ func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes
 			// TODO: here is where we label the pod
 			pod, err := kubeClient.CoreV1().Pods(ps.ProxiedPodNamespace).Get(ctx, ps.ProxiedPodName, v1.GetOptions{})
 			if err != nil {
-				log.Error(err, "Couldn't retrieve pod from api")
-				return nil, err
+				log.Error(err, "Couldn't retrieve pod from api, continuing...")
+				continue //return nil, err
 			}
 			oldPods = append(oldPods, *pod)
 		}
 	}
+	log.Info(fmt.Sprintf("Found %d outdated pods", len(oldPods)))
 	return oldPods, nil
 }
 

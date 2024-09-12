@@ -55,31 +55,11 @@ type NamespaceReconciler struct {
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	//log.Info("Reconciling Namespace")
+	log.Info("Reconciling Namespace")
 
-	// if the istio tag on the namespace changed, we should restart the pods so the
-	// sidecar proxies can be configured to whatever the new tag value indicates.
-	err := r.IstioData.RefreshIstioData(ctx, r.KubeClient)
-	if err != nil {
-		log.Error(err, "Couldn't refresh istio data")
-		return ctrl.Result{}, nil
-	}
-	//r.IstioData.PrintProxyStatusData(ctx)
-
-	oldPods, err := r.IstioData.CheckProxiedPods(ctx, r.KubeClient)
-	if err != nil {
-		log.Error(err, "Error checking proxied pods")
-		return ctrl.Result{}, err
-	}
-
-	// when pods are labeled as outdated, this should trigger the pod controller
-	err = r.LabelPodsOutdated(ctx, r.KubeClient, oldPods)
-	if err != nil {
-		log.Error(err, "Error labelling outdated pods")
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	// if the istio revision tag on a namespace changed, we should check for istio proxy
+	// status and revision tags and outdated pods because istio was likely updated
+	return util.UpdateDataAndCheckAndMarkPods(ctx, r.KubeClient, r.IstioData)
 }
 
 // filter namespace events we want to reconcile

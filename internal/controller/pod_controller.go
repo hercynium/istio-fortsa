@@ -95,7 +95,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 // reconcile if the label is present and non-empty
 func onlyReconcileOutdatedPods() predicate.Predicate {
-	outdatedPodLabel := rollout.RolloutRestartAnnotation
+	outdatedPodLabel := util.PodOutdatedLabel
 	return predicate.Funcs{
 		// a pod should never just be created with this label
 		CreateFunc: func(e event.CreateEvent) bool {
