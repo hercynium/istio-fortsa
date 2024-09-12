@@ -78,12 +78,12 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 	if !done {
-		log.Info("Deployment is currently in a rollout. Skipping.")
+		log.Info("Deployment is currentlyx in a rollout. Skipping.")
 		// reinject?
 		return ctrl.Result{}, err
 	}
 
-	dryRun := true
+	dryRun := false
 	err = rollout.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
@@ -97,9 +97,9 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func onlyReconcileOutdatedPods() predicate.Predicate {
 	outdatedPodLabel := util.PodOutdatedLabel
 	return predicate.Funcs{
-		// a pod should never just be created with this label
+		// on controller start, we get create events, so check the pods
 		CreateFunc: func(e event.CreateEvent) bool {
-			return false
+			return e.Object.GetLabels()[outdatedPodLabel] != ""
 		},
 		// reconcile when a pod is updated and the label has been added or changed
 		UpdateFunc: func(e event.UpdateEvent) bool {

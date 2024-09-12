@@ -34,7 +34,7 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 
 	restartTimeInNanos := time.Now().Format(time.RFC3339)
 
-	// TODO: figure out how to properly handle different object types, not like this...
+	// TODO: figure out how to DRY this code
 	switch obj.GetObjectKind().GroupVersionKind().Kind {
 	case "Deployment":
 		objX := &appsv1.Deployment{}
@@ -43,6 +43,8 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if objX.Spec.Template.ObjectMeta.Annotations == nil {
 			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
+		// TODO: check the annotation and if it exists, check the timestamp. If it's been less than 1 hour,
+		// skip updating it to trigger another restart attempt
 		if !dryRun {
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
 		}
