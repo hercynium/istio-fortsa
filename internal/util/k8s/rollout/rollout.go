@@ -16,14 +16,6 @@ import (
 )
 
 const (
-	ReasonRolloutRestartFailed      = "RolloutRestartFailed"
-	ReasonRolloutRestartTriggered   = "RolloutRestartTriggered"
-	ReasonRolloutRestartUnsupported = "RolloutRestartUnsupported"
-	ReasonAnnotationSucceeded       = "AnnotationAdditionSucceeded"
-	ReasonAnnotationFailed          = "AnnotationAdditionFailed"
-)
-
-const (
 	RolloutRestartAnnotation = "ipuc.cloudera.com/restartedAt"
 )
 
