@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	IstioTagLabel = "istio.io/tag"
+	IstioTagLabel      = "istio.io/tag"
+	IstioRevisionLabel = "istio.io/rev"
 )
 
 type TagDescription struct {

@@ -69,6 +69,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(ctx context.Context, 
 		return ctrl.Result{}, err
 	}
 
+	// when pods are labeled as outdated, this should trigger the pod controller
 	err = r.LabelPodsOutdated(ctx, r.KubeClient, oldPods)
 	if err != nil {
 		log.Error(err, "Error labelling outdated pods")

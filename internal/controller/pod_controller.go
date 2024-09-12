@@ -61,7 +61,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
-		// it was probably deleted...
+		// it was probably deleted, so nothing to do...
 		log.Info("Couldn't load pod", "err", err)
 		return ctrl.Result{}, nil
 	}
@@ -73,7 +73,18 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	err = rollout.DoRolloutRestart(ctx, r.Client, pc)
+	done, err := rollout.IsRolloutReady(ctx, r.Client, pc)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !done {
+		log.Info("Deployment is currently in a rollout. Skipping.")
+		// reinject?
+		return ctrl.Result{}, err
+	}
+
+	dryRun := false
+	err = rollout.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
 		return ctrl.Result{}, err
@@ -82,26 +93,25 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return ctrl.Result{}, nil
 }
 
-var outdatedPodLabel = "ipuc.cloudera.com/outdatedAt"
-
 // reconcile if the label is present and non-empty
 func onlyReconcileOutdatedPods() predicate.Predicate {
+	outdatedPodLabel := rollout.RolloutRestartAnnotation
 	return predicate.Funcs{
-		// a pod should never just be created with this label, but
-		// maybe we want to see if it happens for some reason
+		// a pod should never just be created with this label
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()[outdatedPodLabel] != ""
+			return false
 		},
-		// reconcile when a pod is updated with this label
+		// reconcile when a pod is updated and the label has been added or changed
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetLabels()[outdatedPodLabel] != ""
+			return e.ObjectNew.GetLabels()[outdatedPodLabel] != "" &&
+				e.ObjectOld.GetLabels()[outdatedPodLabel] != e.ObjectNew.GetLabels()[outdatedPodLabel]
 		},
-		// if a pod with this label is deleted, is there anything we need to do?
+		// if a pod with this label is deleted, there's nothing to do, right?
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return false //e.Object.GetLabels()[outdatedPodLabel] != ""
+			return false
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			// ignore these for now
+			// ignore these for now (what do they even do?)
 			return false
 		},
 	}

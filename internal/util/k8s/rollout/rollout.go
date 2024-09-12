@@ -28,17 +28,9 @@ const (
 )
 
 // DoRolloutRestart handles rollout restart of object by patching with annotation
-func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) error {
+func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, dryRun bool) error {
 	log := log.FromContext(ctx)
-
-	done, err := IsRolloutReady(ctx, client, obj)
-	if err != nil {
-		return err
-	}
-	if !done {
-		log.Info("Deployment is currently in a rollout. Skipping.")
-		return nil
-	}
+	log.Info("Attempting rollout restart", "obj", obj.GetName())
 
 	restartTimeInNanos := time.Now().Format(time.RFC3339)
 
@@ -51,7 +43,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if objX.Spec.Template.ObjectMeta.Annotations == nil {
 			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		if !dryRun {
+			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		}
 		return client.Patch(ctx, objX, patch)
 	case "DaemonSet":
 		objX := &appsv1.DaemonSet{}
@@ -60,7 +54,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if objX.Spec.Template.ObjectMeta.Annotations == nil {
 			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		if !dryRun {
+			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		}
 		return client.Patch(ctx, objX, patch)
 	case "StatefulSet":
 		objX := &appsv1.StatefulSet{}
@@ -69,7 +65,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if objX.Spec.Template.ObjectMeta.Annotations == nil {
 			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		if !dryRun {
+			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		}
 		return client.Patch(ctx, objX, patch)
 	default:
 		return fmt.Errorf("unsupported Kind %v for rollout restart", obj.GetObjectKind().GroupVersionKind().Kind)

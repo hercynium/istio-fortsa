@@ -64,7 +64,7 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernete
 
 	// if it's been less than 10 minutes since the last update, don't update again...
 	duration, _ := time.ParseDuration("-10m")
-	if id.LastUpdate.After(time.Now().Add(duration)) {
+	if id.LastUpdate.After(time.Now().Add(duration)) && false {
 		log.Info("Not updating istio data because not enough time has passed")
 		return nil
 	} else {

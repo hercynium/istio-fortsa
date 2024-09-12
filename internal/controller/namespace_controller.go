@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
+	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/tags"
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
 )
 
@@ -55,32 +56,43 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	//log.Info("Reconciling Namespace")
 
+	// if the istio tag on the namespace changed, we should restart the pods so the
+	// sidecar proxies can be configured to whatever the new tag value indicates.
 	err := r.IstioData.RefreshIstioData(ctx, r.KubeClient)
 	if err != nil {
 		log.Error(err, "Couldn't refresh istio data")
 		return ctrl.Result{}, nil
 	}
-	//r.IstioData.PrintRevisionTagInfo(ctx)
+	//r.IstioData.PrintProxyStatusData(ctx)
+
+	oldPods, err := r.IstioData.CheckProxiedPods(ctx, r.KubeClient)
+	if err != nil {
+		log.Error(err, "Error checking proxied pods")
+		return ctrl.Result{}, err
+	}
+
+	// when pods are labeled as outdated, this should trigger the pod controller
+	err = r.LabelPodsOutdated(ctx, r.KubeClient, oldPods)
+	if err != nil {
+		log.Error(err, "Error labelling outdated pods")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
-
-// namespaces with istio-injection will have this label. If it changes,
-// the pods probably have to be restarted.
-var istioRevisionLabel = "istio.io/rev"
 
 // filter namespace events we want to reconcile
 func onlyReconcileIstioLabelChange() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			// only reconcile if the label exists and is not empty
-			return e.Object.GetLabels()[istioRevisionLabel] != ""
+			return e.Object.GetLabels()[tags.IstioRevisionLabel] != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// only reconcile if the tag changed
+			// only reconcile if the value of the label changed
 			oldLabels := e.ObjectOld.GetLabels()
 			newLabels := e.ObjectNew.GetLabels()
-			return oldLabels[istioRevisionLabel] != newLabels[istioRevisionLabel]
+			return oldLabels[tags.IstioRevisionLabel] != newLabels[tags.IstioRevisionLabel]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// no namespace means no label to think about. Skip the event.

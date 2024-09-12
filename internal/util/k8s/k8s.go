@@ -14,6 +14,7 @@ package k8s
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -26,11 +27,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+type PodNotFoundError struct{ msg string }
+
+func (e PodNotFoundError) Error() string { return e.msg }
+
+type ControllerNotFoundError struct{ msg string }
+
+func (e ControllerNotFoundError) Error() string { return e.msg }
+
 // I hate this function
 func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod corev1.Pod) (*unstructured.Unstructured, error) {
 	log := log.FromContext(ctx)
 
-	// take the k8s-client Pod object and convert it to a dynamic object
+	// take the k8s-client Pod object and convert it to a k8s-client dynamic object
 
 	dynamic := dynamic.NewForConfigOrDie(ctrl.GetConfigOrDie())
 
@@ -42,25 +51,21 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 
 	res, err := dynamic.Resource(resourceId).Namespace(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
-		// TODO: handle pod not found error
-		log.Info("Couldn't find outdated pod", "err", err)
-		return nil, err
+		return nil, &PodNotFoundError{fmt.Sprintf("Couldn't find pod %v.%v", pod.Name, pod.Namespace)}
 	}
 
 	// find the top-level controller
 
-	controller, err := getPodController(dynamic, ctx, res)
+	controller, err := getPodController(ctx, dynamic, res)
 	if err != nil {
-		log.Info("Couldn't find controller of outdated pod", "err", err)
-		return nil, err
+		return nil, &ControllerNotFoundError{fmt.Sprintf("Couldn't find controller of pod %v.%v", pod.Name, pod.Namespace)}
 	}
 
 	log.Info("Found controller for outdated pod", "pod-name", pod.Name, "controller-name", controller.GetName())
 	return controller, nil
 }
 
-func getPodController(dynamic dynamic.Interface, ctx context.Context,
-	obj *unstructured.Unstructured) (owner *unstructured.Unstructured, err error) {
+func getPodController(ctx context.Context, dynamic dynamic.Interface, obj *unstructured.Unstructured) (owner *unstructured.Unstructured, err error) {
 	for _, oRef := range obj.GetOwnerReferences() {
 		if *oRef.Controller {
 			apiParts := strings.Split(oRef.APIVersion, "/")
@@ -69,7 +74,6 @@ func getPodController(dynamic dynamic.Interface, ctx context.Context,
 				Version:  apiParts[1],
 				Resource: strings.ToLower(oRef.Kind) + "s",
 			}
-			//fmt.Printf("Looking for controller kind: [%v, %v]\n", oRef.APIVersion, oRef.Kind)
 			owner, err = dynamic.Resource(resourceId).Namespace(obj.GetNamespace()).Get(ctx, oRef.Name, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
@@ -80,5 +84,5 @@ func getPodController(dynamic dynamic.Interface, ctx context.Context,
 	if owner == nil {
 		return obj, nil
 	}
-	return getPodController(dynamic, ctx, owner)
+	return getPodController(ctx, dynamic, owner)
 }
