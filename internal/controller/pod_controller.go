@@ -83,7 +83,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	dryRun := false
+	dryRun := true
 	err = rollout.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)

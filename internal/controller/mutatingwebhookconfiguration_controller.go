@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -84,9 +85,13 @@ var webhookAppLabelValue = "sidecar-injector"
 
 // filter webhooks we want to reconcile.
 func onlyReconcileIstioWebhooks() predicate.Predicate {
+	// only look at webhook configs created in the last 10 minutes on creation events
+	duration, _ := time.ParseDuration("-10m")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()["app"] == webhookAppLabelValue
+			// only recently created and has the label
+			return e.Object.GetCreationTimestamp().After(time.Now().Add(duration)) &&
+				e.Object.GetLabels()["app"] == webhookAppLabelValue
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			return e.ObjectNew.GetLabels()["app"] == webhookAppLabelValue

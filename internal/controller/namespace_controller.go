@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -83,10 +84,13 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // filter namespace events we want to reconcile
 func onlyReconcileIstioLabelChange() predicate.Predicate {
+	// only look at namespaces created in the last 10 minutes on creation events
+	duration, _ := time.ParseDuration("-10m")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			// only reconcile if the label exists and is not empty
-			return e.Object.GetLabels()[tags.IstioRevisionLabel] != ""
+			return e.Object.GetCreationTimestamp().After(time.Now().Add(duration)) &&
+				e.Object.GetLabels()[tags.IstioRevisionLabel] != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// only reconcile if the value of the label changed
