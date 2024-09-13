@@ -6,4 +6,32 @@ pilot:
       memory: "128Mi"
   cni:
     enabled: true
- 
+
+meshConfig:
+  enableTracing: true
+  defaultConfig:
+    tracing: {}
+  extensionProviders:
+  - name: "opentelemetry"
+    opentelemetry:
+      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
+      port: 4317
+      resource_detectors:
+        environment: {}
+  - name: "zipkin"
+    zipkin:
+      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
+      port: 9411
+  - name: "datadog"
+    datadog:
+      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
+      port: 8126 
+  - name: "prometheus"
+    prometheus:
+  defaultProviders:
+    tracing:
+    - opentelemetry
+    metrics:
+    - prometheus
+    # accesslogging: []
+

@@ -7,31 +7,44 @@ ISTIO_V2="1.23.1"
 
 ISTIO_HELM_REPO="https://istio-release.storage.googleapis.com/charts"
 
-### set up a new cluster
 
-kind create cluster --config kind-config.yaml
+### set up a new cluster
+minikube start --addons=metrics-server,storage-provisioner --cpus=max --memory=no-limit
 
 sleep 5
 
-kubectl create ns istio-system
+kubectl create ns debug
 
-sleep 2
+helm install --wait --namespace kube-system --create-namespace kube-state-metrics bitnami/kube-state-metrics
+helm install --wait --namespace prometheus --create-namespace kube-prometheus bitnami/kube-prometheus
+
 
 
 ### install first istio revision
 
-helm install --wait --namespace istio-system istio-base "$ISTIO_HELM_REPO/base-$ISTIO_V1.tgz" \
+kubectl create ns istio-system
+
+helm install --wait --namespace istio-system istio-base istio/base \
+  --version "$ISTIO_V1" \
   --values istio-base.values.yaml \
   --set revision="v${ISTIO_V1//./-}" \
+  --ser revisionTags="{default,stable}" \
   --set defaultRevision="v${ISTIO_V1//./-}"
 
-helm install --wait --namespace istio-system istio-cni "$ISTIO_HELM_REPO/cni-$ISTIO_V1.tgz" \
+helm install --wait --namespace istio-system istio-cni istio/cni \
+  --version "$ISTIO_V1" \
   --values istio-cni.values.yaml \
   --set revision="v${ISTIO_V1//./-}"
 
-helm install --wait --namespace istio-system "istio-istiod-v${ISTIO_V1//./-}" "$ISTIO_HELM_REPO/istiod-$ISTIO_V1.tgz" \
+helm install --wait --namespace istio-system "istio-istiod-v${ISTIO_V1//./-}" istio/istiod  \
+  --version "$ISTIO_V1" \
   --values istio-istiod.values.yaml \
   --set revision="v${ISTIO_V1//./-}"
+
+
+# set the "default" tag for this revision. This tag is special, see:
+#  https://istio.io/latest/docs/setup/upgrade/canary/#default-tag
+istioctl tag generate default --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f - 
 
 # set the stable tag for this revision (tag name is arbitrarty)
 istioctl tag generate stable --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f - 
@@ -43,57 +56,66 @@ istioctl tag generate canary --overwrite --revision "v${ISTIO_V1//./-}" | kubect
 ### install bookinfo app and test...
 ###
 
+sleep 10
+
 # install k8s Gateway API
 kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
   { kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.1.0/standard-install.yaml; }
 
 # enable auto-injection on the default namespace
-#kubectl label namespace default istio-injection=enabled
 kubectl label namespace default istio.io/rev=stable
 
 kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-1.23/samples/bookinfo/platform/kube/bookinfo.yaml
 
 sleep 5
 
+
 ### install new istiod
 
-helm install --wait --namespace istio-system "istio-istiod-v${ISTIO_V2//./-}" "$ISTIO_HELM_REPO/istiod-$ISTIO_V2.tgz" \
+helm install --wait --namespace istio-system "istio-istiod-v${ISTIO_V2//./-}" istio/istiod \
+  --version "$ISTIO_V2" \
   --values istio-istiod.values.yaml \
   --set revision="v${ISTIO_V2//./-}"
 
 
-# set the canary tag for this revision (tag name is arbitrarty)
+# set the canary tag for this revision
 istioctl tag generate canary --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f - 
 
-###
-### Restart stuff in canary-tagged namespaces and verify it's working
-###  (this restart of outdated pods is what the IPUC operator should do)
-###
 
+### if there were any canary-tagged namespaces, IPUC would restart the pods
 
 
 ### promote the new istiod to stable
 
-# set the stable tag for this revision
-istioctl tag generate stable --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
+# set the default tag for this revision
+istioctl tag generate default --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
 
 
 ### make the new istio revision the system default
 
-helm upgrade --wait --namespace istio-system istio-base "$ISTIO_HELM_REPO/base-$ISTIO_V2.tgz" \
+helm upgrade --wait --namespace istio-system istio-base istio/base \
+  --version "$ISTIO_V2" \
   --values istio-base.values.yaml \
   --set revision="v${ISTIO_V2//./-}" \
   --set defaultRevision="v${ISTIO_V2//./-}" \
   --skip-crds
 
 
-### TODO: figure out when is best to upgrade the CNI
-
-helm upgrade --wait --namespace istio-system istio-cni "$ISTIO_HELM_REPO/cni-$ISTIO_V2.tgz" \
+# upgrade the CNI
+helm upgrade --wait --namespace istio-system istio-cni istio/cni \
+  --version "$ISTIO_V2" \
   --values istio-cni.values.yaml \
   --set revision="v${ISTIO_V2//./-}"
 
+# set the default tag for this revision
+istioctl tag generate default --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
 
+### by now the controller should be running, and the next command should cause it
+### to trigger the rollout restart of pods connected to the old istio version,
+### because we labeled the "default" namespace with the stable tag
+
+# set the stable tag for this revision
+istioctl tag generate stable --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
 
 echo DONE
 
