@@ -7,6 +7,8 @@ ISTIO_V2="1.23.1"
 
 ISTIO_HELM_REPO="https://istio-release.storage.googleapis.com/charts"
 
+helm repo add istio "$ISTIO_HELM_REPO"
+helm repo update
 
 ### set up a new cluster
 minikube start --addons=metrics-server,storage-provisioner --cpus=max --memory=no-limit
