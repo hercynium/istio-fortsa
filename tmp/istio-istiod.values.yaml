@@ -2,36 +2,16 @@
 pilot:
   resources:
     requests:
-      cpu: "100m"
-      memory: "128Mi"
+      cpu: 10m
+      memory: 100Mi
   cni:
     enabled: true
 
-meshConfig:
-  enableTracing: true
-  defaultConfig:
-    tracing: {}
-  extensionProviders:
-  - name: "opentelemetry"
-    opentelemetry:
-      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
-      port: 4317
-      resource_detectors:
-        environment: {}
-  - name: "zipkin"
-    zipkin:
-      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
-      port: 9411
-  - name: "datadog"
-    datadog:
-      service: "grafana-tempo.grafana-tempo.svc.cluster.local"
-      port: 8126 
-  - name: "prometheus"
-    prometheus:
-  defaultProviders:
-    tracing:
-    - opentelemetry
-    metrics:
-    - prometheus
-    # accesslogging: []
+global:
+  proxy:
+    # resource limits for the sidecar
+    resources:
+      requests:
+        cpu: 10m
+        memory: 40Mi
 
