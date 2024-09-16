@@ -39,7 +39,6 @@ import (
 // PodReconciler reconciles a Pod object
 type PodReconciler struct {
 	client.Client
-	util.ICUPReconciler
 	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	KubeClient *kubernetes.Clientset

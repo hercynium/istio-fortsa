@@ -7,23 +7,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
 )
-
-type ICUPReconciler struct {
-	client.Client
-	Scheme     *runtime.Scheme
-	Recorder   record.EventRecorder
-	KubeClient *kubernetes.Clientset
-	IstioData  *istiodata.IstioData
-}
 
 const (
 	PodOutdatedLabel = "ipuc.cloudera.com/outdatedAt"

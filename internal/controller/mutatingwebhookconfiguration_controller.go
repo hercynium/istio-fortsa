@@ -37,7 +37,6 @@ import (
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigurationReconciler struct {
 	client.Client
-	util.ICUPReconciler
 	Scheme     *runtime.Scheme
 	Recorder   record.EventRecorder
 	KubeClient *kubernetes.Clientset
