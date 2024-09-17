@@ -63,10 +63,10 @@ func UpdateDataAndCheckAndMarkPods(ctx context.Context, k *kubernetes.Clientset,
 	return ctrl.Result{}, nil
 }
 
-func DefaultTypedControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+func PodControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
 	return workqueue.NewTypedMaxOfRateLimiter(
 		workqueue.NewTypedItemExponentialFailureRateLimiter[T](5*time.Millisecond, 1000*time.Second),
 		// 10 qps, 100 bucket size.  This is only for retry speed and its only the overall factor (not per item)
-		&workqueue.TypedBucketRateLimiter[T]{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+		&workqueue.TypedBucketRateLimiter[T]{Limiter: rate.NewLimiter(rate.Limit(3), 30)},
 	)
 }
