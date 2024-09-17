@@ -5,9 +5,11 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -59,4 +61,12 @@ func UpdateDataAndCheckAndMarkPods(ctx context.Context, k *kubernetes.Clientset,
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func DefaultTypedControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+	return workqueue.NewTypedMaxOfRateLimiter(
+		workqueue.NewTypedItemExponentialFailureRateLimiter[T](5*time.Millisecond, 1000*time.Second),
+		// 10 qps, 100 bucket size.  This is only for retry speed and its only the overall factor (not per item)
+		&workqueue.TypedBucketRateLimiter[T]{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+	)
 }
