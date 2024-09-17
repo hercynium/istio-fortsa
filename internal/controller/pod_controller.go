@@ -77,7 +77,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 	if !done {
-		log.Info("Deployment is currentlyx in a rollout. Skipping.")
+		log.Info("Deployment is currently in a rollout. Skipping.")
 		// reinject?
 		return ctrl.Result{}, err
 	}
