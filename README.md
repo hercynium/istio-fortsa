@@ -1,8 +1,17 @@
 # istio-proxy-update-controller
-// TODO(user): Add simple overview of use/purpose
+
+An SRE's dream: Keep Istio's data-plane up-to-date without toil.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+
+When updating Istio, one particular task is pretty much impossible to do with a GitOps-style
+workflow: Restarting all the pods running the previous versions of Istio's sidecar proxy. This
+is an onerous task even when doing everything via scripts or using something like Ansible. It
+can take hours - or even longer - and it's easy to make mistakes. An that's just for a single
+medium-sized cluster. If you have many clusters, keeping Istio's data-plane up-to-date can be
+a full-time job!
+
+This project is a Kubernetes Operator that automates away the whole task, as much as possible.
 
 ## Getting Started
 
@@ -16,7 +25,7 @@
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/istio-proxy-update-controller:tag
+make docker-buildx IMG=<some-registry>/istio-proxy-update-controller:tag
 ```
 
 **NOTE:** This image ought to be published in the personal registry you specified.
@@ -90,7 +99,9 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/istio-proxy-update-cont
 ```
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+
+This is a young project and we can use all the help we can get! Feature requests, bug
+reports, patches, documentation, testing, you name it!
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
@@ -98,7 +109,7 @@ More information can be found via the [Kubebuilder Documentation](https://book.k
 
 ## License
 
-Copyright 2024.
+Copyright Cloudera Inc, 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
