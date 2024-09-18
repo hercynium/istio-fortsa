@@ -13,6 +13,12 @@ a full-time job!
 
 This project is a Kubernetes Operator that automates away the whole task, as much as possible.
 
+## Inspiration
+
+This project was inspired by our experience with the toil of keeping the istio data-plane
+up-to-date and then discovering the solution Google had come up with, described in this
+YouTube video: https://youtu.be/R86ZsYH7Ka4
+
 ## Getting Started
 
 ### Prerequisites
@@ -98,10 +104,14 @@ Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project
 kubectl apply -f https://raw.githubusercontent.com/<org>/istio-proxy-update-controller/<tag or branch>/dist/install.yaml
 ```
 
+## TODO
+
+There's lots to do! If you want to help, see the Contributing section, below.
+
 ## Contributing
 
 This is a young project and we can use all the help we can get! Feature requests, bug
-reports, patches, documentation, testing, you name it!
+reports, patches, documentation, testing, CI/CD, helm charts, you name it!
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
@@ -122,4 +132,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
