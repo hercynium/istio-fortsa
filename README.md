@@ -13,6 +13,10 @@ a full-time job!
 
 This project is a Kubernetes Operator that automates away the whole task, as much as possible.
 
+In the spirit of being as simple as possible, there are currently no CRDs and no dependencies
+other than running in a cluster that uses Istio. Note that we've only tested this when using
+Istio's default envoy-based proxy.
+
 ## Inspiration
 
 This project was inspired by our experience with the toil of keeping the istio data-plane
