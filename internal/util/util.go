@@ -63,10 +63,17 @@ func UpdateDataAndCheckAndMarkPods(ctx context.Context, k *kubernetes.Clientset,
 	return ctrl.Result{}, nil
 }
 
+// TODO: figure out how to implement desired rate-limiting semantics here...
+// for example: only perform 5 restarts every minute, and no more than 5 active restarts at a time
+const restartsPerMinute = 5.0 // TODO: compute from restartDelay config param
+const activeRestartLimit = 5  // TODO: make this actually work
+
 func PodControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
+	limiter := rate.NewLimiter(limit, activeRestartLimit)
 	return workqueue.NewTypedMaxOfRateLimiter(
 		workqueue.NewTypedItemExponentialFailureRateLimiter[T](500*time.Millisecond, 1000*time.Second),
-		// 10 qps, 100 bucket size.  This is only for retry speed and its only the overall factor (not per item)
-		&workqueue.TypedBucketRateLimiter[T]{Limiter: rate.NewLimiter(rate.Limit(3), 30)},
+		// This is only for retry speed and its only the overall factor (not per item)
+		&workqueue.TypedBucketRateLimiter[T]{Limiter: limiter},
 	)
 }
