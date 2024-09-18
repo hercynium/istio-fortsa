@@ -133,6 +133,12 @@ function complete-istio-upgrade() {
   istioctl tag generate stable --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
 }
 
+function rollback-istio-upgrade() {
+  istioctl tag generate canary --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f -
+  istioctl tag generate stable --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f -
+  istioctl tag generate default --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f -
+}
+
 function setup-demo() {
   init-cluster
   install-istio
@@ -152,7 +158,8 @@ function main() {
     init     ) setup-demo ;;
     upgrade  )  install-canary-istiod ;;
     complete ) complete-istio-upgrade ;;
-    *        ) echo >&2 "Specify action: reset | init | upgrade | complete"
+    rollback ) rollback-istio-upgrade ;;
+    *        ) echo >&2 "Specify action: reset | init | upgrade | complete | rollback"
   esac
 }
 
