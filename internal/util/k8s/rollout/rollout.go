@@ -20,6 +20,7 @@ const (
 )
 
 // DoRolloutRestart handles rollout restart of object by patching with annotation
+// TODO: if annotation exists, check status. If rollout failed in some way, report it.
 func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, dryRun bool) error {
 	log := log.FromContext(ctx)
 	log.Info("Attempting rollout restart", "obj", obj.GetName())
