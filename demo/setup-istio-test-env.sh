@@ -133,16 +133,29 @@ function complete-istio-upgrade() {
   istioctl tag generate stable --overwrite --revision "v${ISTIO_V2//./-}" | kubectl apply -f -
 }
 
-function main() {
+function setup-demo() {
   init-cluster
   install-istio
   install-bookinfo bookinfo-stable stable
   install-bookinfo bookinfo-canary canary
-  
-  #install-canary-istiod
-  #complete-istio-upgrade
 }
 
-main
+function reset-demo() {
+  minikube delete
+  setup-demo
+}
+
+
+function main() {
+  case "${1:-}" in
+    reset    ) reset-demo ;;
+    init     ) setup-demo ;;
+    upgrade  )  install-canary-istiod ;;
+    complete ) complete-istio-upgrade ;;
+    *        ) echo >&2 "Specify action: reset | init | upgrade | complete"
+  esac
+}
+
+main "$@"
 
 echo DONE
