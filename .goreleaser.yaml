@@ -26,8 +26,7 @@ builds:
       - arm64
 
 kos:
-  - repository: ghcr.io/hercynium/istio-fortsa
-    base_image: gcr.io/distroless/static:nonroot
+  - base_image: gcr.io/distroless/static:nonroot
     tags:
       - "{{ .Tag }}"
       - latest

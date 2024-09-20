@@ -2,7 +2,6 @@
 name: goreleaser
 
 on:
-  pull_request:
   push:
     # run only against tags
     tags:
@@ -34,3 +33,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}
