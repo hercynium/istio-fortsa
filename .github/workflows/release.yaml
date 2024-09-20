@@ -33,4 +33,4 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/${{ github.repository_name }}
+          KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
