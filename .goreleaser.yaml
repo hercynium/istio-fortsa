@@ -17,7 +17,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.Date={{ .CommitDate }}
+      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
     goos:
       - linux
       - darwin
