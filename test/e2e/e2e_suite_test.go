@@ -27,6 +27,6 @@ import (
 // Run e2e tests using the Ginkgo runner.
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	fmt.Fprintf(GinkgoWriter, "Starting istio-proxy-update-controller suite\n")
+	fmt.Fprintf(GinkgoWriter, "Starting istio-fortsa suite\n")
 	RunSpecs(t, "e2e suite")
 }

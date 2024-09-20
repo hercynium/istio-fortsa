@@ -32,10 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/k8s/rollout"
+	"github.com/hercynium/istio-fortsa/internal/util"
+	"github.com/hercynium/istio-fortsa/internal/util/istiodata"
+	"github.com/hercynium/istio-fortsa/internal/util/k8s"
+	"github.com/hercynium/istio-fortsa/internal/util/k8s/rollout"
 )
 
 // PodReconciler reconciles a Pod object

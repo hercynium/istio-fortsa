@@ -13,7 +13,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
+	"github.com/hercynium/istio-fortsa/internal/util/istiodata"
 )
 
 const (

@@ -7,13 +7,13 @@ metadata:
     createdAt: "2024-09-11T20:41:36Z"
     operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: istio-proxy-update-controller.v0.0.1
+  name: istio-fortsa.v0.0.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions: {}
   description: Restarts Outdated Istio-Proxied Pods
-  displayName: istio-proxy-update-controller
+  displayName: istio-fortsa
   icon:
   - base64data: ""
     mediatype: ""
@@ -36,7 +36,7 @@ spec:
   - operations
   links:
   - name: Istio Proxy Update Controller
-    url: https://istio-proxy-update-controller.domain
+    url: https://istio-fortsa.domain
   maintainers:
   - email: sscaffidi@cloudera.com
     name: Steve Scaffidi

@@ -1,6 +1,10 @@
-# istio-proxy-update-controller
+# istio-fortsa
 
 An SRE's dream: Keep Istio's data-plane up-to-date without toil.
+
+## Name
+
+The name comes from the Greek phrase "Όρτσα τα πανιά!" meaning roughly "Full Sail Ahead"
 
 ## Description
 
@@ -19,7 +23,7 @@ Istio's default envoy-based proxy.
 
 ## Inspiration
 
-This project was inspired by our experience with the toil of keeping the istio data-plane
+This project was inspired by my experience with the toil of keeping the istio data-plane
 up-to-date and then discovering the solution Google had come up with, described in this
 YouTube video: https://youtu.be/R86ZsYH7Ka4
 
@@ -29,13 +33,13 @@ YouTube video: https://youtu.be/R86ZsYH7Ka4
 - go version v1.21.0+
 - docker version 17.03+.
 - kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+- Access to a Kubernetes v1.11.3+ cluster running Istio
 
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
-make docker-buildx IMG=<some-registry>/istio-proxy-update-controller:tag
+make docker-buildx IMG=sscaffidi/istio-fortsa:tag
 ```
 
 **NOTE:** This image ought to be published in the personal registry you specified.
@@ -51,7 +55,7 @@ make install
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
 
 ```sh
-make deploy IMG=<some-registry>/istio-proxy-update-controller:tag
+make deploy IMG=sscaffidi/istio-fortsa:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -92,7 +96,7 @@ Following are the steps to build the installer and distribute this project to us
 1. Build the installer for the image built and published in the registry:
 
 ```sh
-make build-installer IMG=<some-registry>/istio-proxy-update-controller:tag
+make build-installer IMG=sscaffidi/istio-fortsa:tag
 ```
 
 NOTE: The makefile target mentioned above generates an 'install.yaml'
@@ -105,7 +109,7 @@ its dependencies.
 Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/istio-proxy-update-controller/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/hercynium/istio-fortsa/<tag or branch>/dist/install.yaml
 ```
 
 ## TODO

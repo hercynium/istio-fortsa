@@ -24,10 +24,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/test/utils"
+	"github.com/hercynium/istio-fortsa/test/utils"
 )
 
-const namespace = "istio-proxy-update-controller-system"
+const namespace = "istio-fortsa-system"
 
 var _ = Describe("controller", Ordered, func() {
 	BeforeAll(func() {
@@ -60,7 +60,7 @@ var _ = Describe("controller", Ordered, func() {
 			var err error
 
 			// projectimage stores the name of the image used in the example
-			var projectimage = "docker-sandbox.infra.cloudera.com/sscaffidi/istio-proxy-update-controller:v0.0.1"
+			var projectimage = "docker-sandbox.infra.cloudera.com/sscaffidi/istio-fortsa:v0.0.1"
 
 			By("building the manager(Operator) image")
 			cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectimage))

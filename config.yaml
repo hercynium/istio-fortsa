@@ -24,11 +24,11 @@ minNamespcaeAge: 10m
 minPodAge: 10m
 
 # when a pod is deemed outdated, set this label with a timestamp in nanoseconds-since-epoch
-oudatedPodLabelName: ipuc.cloudera.com/outdatedAt
+oudatedPodLabelName: fortsa.example.com/outdatedAt
 
 # when we trigger a rollout restart, do so by adding this annotation to the
 # pod spec of the controller resource, with a timestamp value.
-restartAnnotationName: ipuc.cloudera.com/restartedAt
+restartAnnotationName: fortsa.example.com/restartedAt
 
 # these probably shouldn't be configurable. TODO: They should come from the Istio libraries
 # we're pulling in, but maybe this would be useful for testing?

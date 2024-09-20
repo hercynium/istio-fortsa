@@ -30,8 +30,8 @@ import (
 	logger "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istiodata"
+	"github.com/hercynium/istio-fortsa/internal/util"
+	"github.com/hercynium/istio-fortsa/internal/util/istiodata"
 )
 
 // MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object

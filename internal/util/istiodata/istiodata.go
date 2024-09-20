@@ -16,8 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/proxystatus"
-	"github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller/internal/util/istio/tags"
+	"github.com/hercynium/istio-fortsa/internal/util/istio/proxystatus"
+	"github.com/hercynium/istio-fortsa/internal/util/istio/tags"
 )
 
 type IstioData struct {

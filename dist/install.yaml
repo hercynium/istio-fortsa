@@ -3,27 +3,27 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
+    app.kubernetes.io/name: istio-fortsa
     control-plane: controller-manager
-  name: istio-proxy-update-controller-system
+  name: istio-fortsa-system
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-controller-manager
-  namespace: istio-proxy-update-controller-system
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-controller-manager
+  namespace: istio-fortsa-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-leader-election-role
-  namespace: istio-proxy-update-controller-system
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-leader-election-role
+  namespace: istio-fortsa-system
 rules:
 - apiGroups:
   - ""
@@ -60,7 +60,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: istio-proxy-update-controller-manager-role
+  name: istio-fortsa-manager-role
 rules:
 - apiGroups:
   - ""
@@ -153,8 +153,8 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-metrics-reader
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -166,8 +166,8 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-proxy-role
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-proxy-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -187,59 +187,59 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-leader-election-rolebinding
-  namespace: istio-proxy-update-controller-system
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-leader-election-rolebinding
+  namespace: istio-fortsa-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: istio-proxy-update-controller-leader-election-role
+  name: istio-fortsa-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: istio-proxy-update-controller-controller-manager
-  namespace: istio-proxy-update-controller-system
+  name: istio-fortsa-controller-manager
+  namespace: istio-fortsa-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-manager-rolebinding
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: istio-proxy-update-controller-manager-role
+  name: istio-fortsa-manager-role
 subjects:
 - kind: ServiceAccount
-  name: istio-proxy-update-controller-controller-manager
-  namespace: istio-proxy-update-controller-system
+  name: istio-fortsa-controller-manager
+  namespace: istio-fortsa-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
-  name: istio-proxy-update-controller-proxy-rolebinding
+    app.kubernetes.io/name: istio-fortsa
+  name: istio-fortsa-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: istio-proxy-update-controller-proxy-role
+  name: istio-fortsa-proxy-role
 subjects:
 - kind: ServiceAccount
-  name: istio-proxy-update-controller-controller-manager
-  namespace: istio-proxy-update-controller-system
+  name: istio-fortsa-controller-manager
+  namespace: istio-fortsa-system
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
+    app.kubernetes.io/name: istio-fortsa
     control-plane: controller-manager
-  name: istio-proxy-update-controller-cm-metrics-svc
-  namespace: istio-proxy-update-controller-system
+  name: istio-fortsa-cm-metrics-svc
+  namespace: istio-fortsa-system
 spec:
   ports:
   - name: https
@@ -254,10 +254,10 @@ kind: Deployment
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: istio-proxy-update-controller
+    app.kubernetes.io/name: istio-fortsa
     control-plane: controller-manager
-  name: istio-proxy-update-controller-controller-manager
-  namespace: istio-proxy-update-controller-system
+  name: istio-fortsa-controller-manager
+  namespace: istio-fortsa-system
 spec:
   replicas: 1
   selector:
@@ -300,7 +300,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: docker-sandbox.infra.cloudera.com/sscaffidi/istio-proxy-update-controller:0.0.3
+        image: docker-sandbox.infra.cloudera.com/sscaffidi/istio-fortsa:0.0.3
         livenessProbe:
           httpGet:
             path: /healthz
@@ -328,5 +328,5 @@ spec:
             - ALL
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: istio-proxy-update-controller-controller-manager
+      serviceAccountName: istio-fortsa-controller-manager
       terminationGracePeriodSeconds: 10

@@ -1,4 +1,4 @@
-module github.infra.cloudera.com/sscaffidi/istio-proxy-update-controller
+module github.com/hercynium/istio-fortsa
 
 go 1.23.0
 
