@@ -27,22 +27,25 @@ builds:
 
 kos:
   - repository: ghcr.io/hercynium/istio-fortsa
-    base_image: ghcr.io/distroless/static:nonroot
+    base_image: gcr.io/distroless/static:nonroot
     tags:
       - "{{ .Tag }}"
       - latest
     platforms:
       - linux/amd64
       - linux/arm64
-    main: ./cmd/...
+    main: ./cmd
     env:
       - CGO_ENABLED=0
     flags:
       - -trimpath
     ldflags:
-      - -extldflags "-static"
       - -s
       - -w
+      - -extldflags "-static"
+      - -X main.Version={{ .Git.Tag }}
+      - -X main.Commit={{ .Git.FullCommit }}
+      - -X main.CommitDate={{ .Git.CommitDate }}
     bare: true
     preserve_import_paths: false
     base_import_paths: false

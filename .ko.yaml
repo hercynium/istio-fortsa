@@ -1,0 +1,20 @@
+---
+defaultBaseImage: gcr.io/distroless/static:nonroot
+
+defaultPlatforms:
+  - linux/amd64
+  - linux/arm64
+
+defaultEnv:
+  - CGO_ENABLED=0
+
+defaultLdflags:
+  - -s
+  - -w
+  - -extldflags "-static"
+  - -X main.Version={{ .Git.Tag }}
+  - -X main.Commit={{ .Git.FullCommit }}
+  - -X main.CommitDate={{ .Git.CommitDate }}
+
+builds:
+  main: ./cmd
