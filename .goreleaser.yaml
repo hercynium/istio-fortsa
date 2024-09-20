@@ -20,10 +20,8 @@ builds:
       - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
     goos:
       - linux
-      - darwin
     goarch:
       - amd64
-      - arm64
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
@@ -42,9 +40,9 @@ kos:
       - -s
       - -w
       - -extldflags "-static"
-      - -X main.Version={{ .Git.Tag }}
-      - -X main.Commit={{ .Git.FullCommit }}
-      - -X main.CommitDate={{ .Git.CommitDate }}
+      - -X main.Version={{ .Version }}
+      - -X main.Commit={{ .Commit }}
+      - -X main.CommitDate={{ .CommitDate }}
     bare: true
     preserve_import_paths: false
     base_import_paths: false
