@@ -12,7 +12,7 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
-    main: ./cmd/main.go
+    main: ./cmd
     binary: istio-fortsa
     flags:
       - -trimpath
@@ -32,7 +32,6 @@ kos:
     platforms:
       - linux/amd64
       - linux/arm64
-    main: ./cmd
     env:
       - CGO_ENABLED=0
     flags:
@@ -54,6 +53,16 @@ kos:
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.url: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
       org.opencontainers.image.source: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
+
+
+release:
+  skip_upload: true
+  footer: |
+    Docker image:
+
+    ```sh
+    repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}
+    ```
 
 changelog:
   sort: asc
