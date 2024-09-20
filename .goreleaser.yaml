@@ -1,0 +1,58 @@
+---
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+    # - go fmt ./...
+    # - go vet ./...
+    # - go test ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/main.go
+    binary: istio-fortsa
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.Date={{ .CommitDate }}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+kos:
+  - repository: ghcr.io/hercynium/istio-fortsa
+    base_image: ghcr.io/distroless/static:nonroot
+    tags:
+      - "{{ .Tag }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    main: ./cmd/...
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - -s
+      - -w
+    bare: true
+    preserve_import_paths: false
+    base_import_paths: false
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^test"
+      - "^chore"
+      - "Merge pull request"
+      - "Merge branch"
