@@ -25,6 +25,7 @@ builds:
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
+    repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}
     tags:
       - "{{ .Tag }}"
       - latest
@@ -46,6 +47,13 @@ kos:
     bare: true
     preserve_import_paths: false
     base_import_paths: false
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "{{ .ProjectName }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.url: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
+      org.opencontainers.image.source: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
 
 changelog:
   sort: asc
