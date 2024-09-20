@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	RolloutRestartAnnotation = "ipuc.cloudera.com/restartedAt"
+	RolloutRestartAnnotation = "fortsa.example.com/restartedAt"
 )
 
 // DoRolloutRestart handles rollout restart of object by patching with annotation

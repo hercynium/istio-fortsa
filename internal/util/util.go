@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	PodOutdatedLabel = "ipuc.cloudera.com/outdatedAt"
+	PodOutdatedLabel = "fortsa.example.com/outdatedAt"
 )
 
 func LabelPodsOutdated(ctx context.Context, k *kubernetes.Clientset, oldPods []corev1.Pod) error {

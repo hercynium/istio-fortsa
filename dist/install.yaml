@@ -300,7 +300,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: docker-sandbox.infra.cloudera.com/sscaffidi/istio-fortsa:0.0.3
+        image: sscaffidi/istio-fortsa:0.0.3
         livenessProbe:
           httpGet:
             path: /healthz

@@ -4,20 +4,23 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-  name: istio-fortsa.v0.0.0
+    createdAt: "2024-09-20T12:49:41Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: istio-fortsa.v0.0.3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions: {}
-  description: Restarts Outdated Istio-Proxied Pods
-  displayName: istio-fortsa
+  description: Update istio proxies automatically
+  displayName: istio-fortza
   icon:
   - base64data: ""
     mediatype: ""
   install:
     spec:
-      deployments: null
-    strategy: ""
+      deployments: []
+    strategy: deployment
   installModes:
   - supported: false
     type: OwnNamespace
@@ -29,15 +32,10 @@ spec:
     type: AllNamespaces
   keywords:
   - istio
-  - automation
-  - operations
   links:
-  - name: Istio Proxy Update Controller
+  - name: Istio Fortsa
     url: https://istio-fortsa.domain
-  maintainers:
-  - email: sscaffidi@cloudera.com
-    name: Steve Scaffidi
   maturity: alpha
   provider:
-    name: cloudera.com
-  version: 0.0.0
+    name: istio-fortza
+  version: 0.0.3
