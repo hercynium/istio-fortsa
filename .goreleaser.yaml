@@ -58,10 +58,10 @@ kos:
 release:
   skip_upload: true
   footer: |
-    Docker image:
+    # Container images
 
-    ```sh
-    repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Version }}
+    ```
+    ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
     ```
 
 changelog:
