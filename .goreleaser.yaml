@@ -1,0 +1,75 @@
+---
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+    # - go fmt ./...
+    # - go vet ./...
+    # - go test ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd
+    binary: istio-fortsa
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+kos:
+  - base_image: gcr.io/distroless/static:nonroot
+    repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}
+    tags:
+      - "{{ .Tag }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
+      - -extldflags "-static"
+      - -X main.Version={{ .Version }}
+      - -X main.Commit={{ .Commit }}
+      - -X main.CommitDate={{ .CommitDate }}
+    bare: true
+    preserve_import_paths: false
+    base_import_paths: false
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "{{ .ProjectName }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.url: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
+      org.opencontainers.image.source: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
+
+
+release:
+  skip_upload: true
+  footer: |
+    # Container images
+
+    ```
+    ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
+    ```
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs"
+      - "^test"
+      - "^chore"
+      - "Merge pull request"
+      - "Merge branch"

@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -42,6 +43,10 @@ import (
 )
 
 var (
+	Version    = "" // set at compile time with -ldflags "-X main.Version=x.y.yz"
+	Commit     = "" // set at compile time with -ldflags "-X main.Commit=..."
+	CommitDate = "" // set at compile time with -ldflags "-X main.CommitDate=..."
+
 	scheme    = runtime.NewScheme()
 	setupLog  = ctrl.Log.WithName("setup")
 	istioData = istiodata.IstioData{}
@@ -59,6 +64,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var version bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -68,11 +74,17 @@ func main() {
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.BoolVar(&version, "version", false, "Print the version of the tool")
 	opts := zap.Options{
 		Development: true,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	if version {
+		fmt.Printf("%s (%s %s)\n", Version, Commit, CommitDate)
+		os.Exit(1)
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
