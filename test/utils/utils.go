@@ -33,25 +33,13 @@ const (
 	certmanagerVersion = "v1.14.4"
 	certmanagerURLTmpl = "https://github.com/jetstack/cert-manager/releases/download/%s/cert-manager.yaml"
 
-	istio1Version      = "1.22.4"
-	istioHelmChartRepo = "https://istio-release.storage.googleapis.com/charts"
-	istio2Version      = "1.23.1"
+	//istio1Version      = "1.22.4"
+	//istioHelmChartRepo = "https://istio-release.storage.googleapis.com/charts"
+	//istio2Version      = "1.23.1"
 )
 
-/*
-kind delete cluster
-kind create cluster --config kind-config.yaml
-
-kubectl create ns istio-system
-
-helm install istio-base-v1-22-4   https://istio-release.storage.googleapis.com/charts/base-1.22.4.tgz   -n istio-system  --set revision=test-1
-helm install istio-istiod-v1-22-4 https://istio-release.storage.googleapis.com/charts/istiod-1.22.4.tgz -n istio-system --set pilot.resources.requests.cpu=100m --set pilot.resources.requests.memory=128m --set revision=test-1
-helm install istio-istiod-v1-23-1 https://istio-release.storage.googleapis.com/charts/istiod-1.23.1.tgz -n istio-system --set pilot.resources.requests.cpu=100m --set pilot.resources.requests.memory=256m --set revision=test-2
-
-*/
-
 func warnError(err error) {
-	fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
+	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
 }
 
 // InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
@@ -68,12 +56,12 @@ func Run(cmd *exec.Cmd) ([]byte, error) {
 	cmd.Dir = dir
 
 	if err := os.Chdir(cmd.Dir); err != nil {
-		fmt.Fprintf(GinkgoWriter, "chdir dir: %s\n", err)
+		_, _ = fmt.Fprintf(GinkgoWriter, "chdir dir: %s\n", err)
 	}
 
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	command := strings.Join(cmd.Args, " ")
-	fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
+	_, _ = fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return output, fmt.Errorf("%s failed with error: (%v) %s", command, err, string(output))
