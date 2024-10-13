@@ -66,7 +66,7 @@ func TestGetTags(t *testing.T) {
 			[]runtime.Object{
 				invalidWebhook("invalid", "foo"),
 				namespace("default", "canary"),
-				namespace("test1", "canary"),
+				namespace("test1", "stable"),
 			},
 		},
 		{

@@ -174,7 +174,10 @@ func main() {
 	//+kubebuilder:scaffold:builder
 
 	// populate the Istio Data before even starting the controllers
-	istioData.RefreshIstioData(context.TODO(), kubeClient)
+	if err := istioData.RefreshIstioData(context.TODO(), kubeClient); err != nil {
+		setupLog.Error(err, "unable to get initial istio data")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
