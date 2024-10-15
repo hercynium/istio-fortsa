@@ -33,6 +33,7 @@ spec:
   - name: Istio Fortsa
     url: https://istio-fortsa.domain
   maturity: alpha
+  minKubeVersion: 1.24.0
   provider:
     name: istio-fortza
   version: 0.0.0
