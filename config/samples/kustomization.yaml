@@ -1,7 +1,6 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - core_v1_pod.yaml
-- core_v1_mutatingwebhookconfiguration.yaml
+- admissionregistration_v1_mutatingwebhookconfiguration.yaml
 - core_v1_namespace.yaml
-- _v1_pod.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

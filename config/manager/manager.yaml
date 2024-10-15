@@ -59,7 +59,7 @@ spec:
         #   type: RuntimeDefault
       containers:
       - command:
-        - /manager
+        - /istio-fortsa
         args:
         - --leader-elect
         image: controller:latest
