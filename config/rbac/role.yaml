@@ -8,38 +8,52 @@ rules:
   - ""
   resources:
   - events
+  - pods/portforward
+  - serviceaccounts/token
   verbs:
   - create
   - patch
 - apiGroups:
   - ""
   resources:
-  - mutatingwebhookconfigurations
   - namespaces
-  - pods
+  - namespaces/finalizers
+  - namespaces/status
   verbs:
-  - create
-  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/finalizers
+  - pods/status
+  verbs:
   - get
   - list
   - patch
   - update
   - watch
 - apiGroups:
-  - ""
+  - admissionregistration.k8s.io
   resources:
+  - mutatingwebhookconfigurations
   - mutatingwebhookconfigurations/finalizers
-  - namespaces/finalizers
-  - pods/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - ""
-  resources:
   - mutatingwebhookconfigurations/status
-  - namespaces/status
-  - pods/status
   verbs:
   - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - daemonset
+  - deployment
+  - statefulset
+  verbs:
+  - get
+  - list
   - patch
   - update
+  - watch

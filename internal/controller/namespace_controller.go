@@ -44,10 +44,12 @@ type NamespaceReconciler struct {
 	IstioData  *istiodata.IstioData
 }
 
-//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=serviceaccounts/token,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=pods/portforward,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

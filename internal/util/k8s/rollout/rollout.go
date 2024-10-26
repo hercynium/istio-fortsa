@@ -19,6 +19,10 @@ const (
 	RolloutRestartAnnotation = "fortsa.example.com/restartedAt"
 )
 
+//+kubebuilder:rbac:groups=apps,resources=deployment,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=apps,resources=daemonset,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=apps,resources=statefulset,verbs=get;list;watch;update;patch
+
 // DoRolloutRestart handles rollout restart of object by patching with annotation
 // TODO: if annotation exists, check status. If rollout failed in some way, report it.
 func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, dryRun bool) error {
