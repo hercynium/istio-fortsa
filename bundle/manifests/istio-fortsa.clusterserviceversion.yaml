@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2024-10-27T01:27:04Z"
+    createdAt: "2024-10-27T02:13:27Z"
     operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: istio-fortsa.v0.0.4
@@ -13,7 +13,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions: {}
   description: Update istio proxies automatically
-  displayName: istio-fortza
+  displayName: istio-fortsa
   icon:
   - base64data: ""
     mediatype: ""
@@ -218,5 +218,5 @@ spec:
   maturity: alpha
   minKubeVersion: 1.24.0
   provider:
-    name: istio-fortza
-  version: 0.0.4
+    name: istio-fortsa
+  version: 0.0.5
