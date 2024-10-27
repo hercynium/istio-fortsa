@@ -1,11 +1,8 @@
 ---
-name: goreleaser
+name: "Release"
 
 on:
-  push:
-    # run only against tags
-    tags:
-      - "*"
+  release:
 
 permissions:
   contents: write
@@ -20,17 +17,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: stable
+      #- name: Set up Go
+      #  uses: actions/setup-go@v5
+      #  with:
+      #    go-version: stable
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
+      - name: Build and Push Docker Images
+        run: make docker-buildx VERSION=${{ github.event.release.tag_name }}
+      
+      - name: Build and Push OLM Bundle Image
+        run: make bundle-push VERSION=${{ github.event.release.tag_name }}
+
+      - name: Build and Push OLM Catalog Image
+        run: make catalog-push VERSION=${{ github.event.release.tag_name }}
