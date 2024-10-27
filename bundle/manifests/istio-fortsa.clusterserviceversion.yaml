@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2024-10-15T02:19:39Z"
+    createdAt: "2024-10-27T01:27:04Z"
     operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: istio-fortsa.v0.0.4
@@ -25,41 +25,55 @@ spec:
           - ""
           resources:
           - events
+          - pods/portforward
+          - serviceaccounts/token
           verbs:
           - create
           - patch
         - apiGroups:
           - ""
           resources:
-          - mutatingwebhookconfigurations
           - namespaces
-          - pods
+          - namespaces/finalizers
+          - namespaces/status
           verbs:
-          - create
-          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - pods/finalizers
+          - pods/status
+          verbs:
           - get
           - list
           - patch
           - update
           - watch
         - apiGroups:
-          - ""
+          - admissionregistration.k8s.io
           resources:
+          - mutatingwebhookconfigurations
           - mutatingwebhookconfigurations/finalizers
-          - namespaces/finalizers
-          - pods/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - ""
-          resources:
           - mutatingwebhookconfigurations/status
-          - namespaces/status
-          - pods/status
           verbs:
           - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonset
+          - deployment
+          - statefulset
+          verbs:
+          - get
+          - list
           - patch
           - update
+          - watch
         - apiGroups:
           - authentication.k8s.io
           resources:
@@ -121,7 +135,7 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 command:
-                  - /manager
+                - /manager
                 image: ghcr.io/hercynium/istio-fortsa:0.0.4
                 livenessProbe:
                   httpGet:
