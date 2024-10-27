@@ -39,7 +39,7 @@ controllerManager:
         - ALL
     image:
       repository: ghcr.io/hercynium/istio-fortsa
-      tag: 0.0.4
+      tag: 0.0.5
     resources:
       limits:
         cpu: 500m
