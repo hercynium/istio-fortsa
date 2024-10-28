@@ -10,7 +10,8 @@ before:
     # - go test ./...
 
 builds:
-  - env:
+  - skip: true
+    env:
       - CGO_ENABLED=0
     main: ./cmd
     binary: manager
