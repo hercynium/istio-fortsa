@@ -10,7 +10,7 @@ permissions:
   packages: write
 
 jobs:
-  dockerLogin:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Login to GitHub Container Registry
@@ -19,9 +19,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-  release:
-    runs-on: ubuntu-latest
-    steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
