@@ -24,11 +24,15 @@ builds:
       - amd64
       - arm64
 
+release:
+  github:
+    owner: hercynium
+    name: istio-fortsa
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
     repository: ghcr.io/hercynium/istio-fortsa
-    main: ./cmd/...
+    main: ./cmd
     tags:
       - "{{ .Tag }}"
       - latest
