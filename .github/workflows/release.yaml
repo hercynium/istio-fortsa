@@ -28,10 +28,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Push OLM Bundle Image
-        run: make bundle-push GIT_TAG=${{ github.event.release.tag_name }}
+        run: make bundle bundle-build bundle-push GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Push OLM Catalog Image
-        run: make catalog-push GIT_TAG=${{ github.event.release.tag_name }}
+        run: make catalog-build catalog-push GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
