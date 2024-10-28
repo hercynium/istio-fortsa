@@ -26,6 +26,7 @@ before:
 kos:
   - base_image: gcr.io/distroless/static:nonroot
     repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}
+    main: ./cmd
     tags:
       - "{{ .Tag }}"
       - latest
