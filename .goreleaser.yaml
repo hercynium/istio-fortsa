@@ -10,10 +10,11 @@ before:
     # - go test ./...
 
 builds:
-  - env:
+  - skip: true
+    env:
       - CGO_ENABLED=0
     main: ./cmd
-    binary: istio-fortsa
+    binary: manager
     flags:
       - -trimpath
     ldflags:
@@ -22,10 +23,17 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
+
+release:
+  github:
+    owner: hercynium
+    name: istio-fortsa
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
-    repository: ghcr.io/{{ .Env.GITHUB_REPOSITORY }}
+    repository: ghcr.io/hercynium/istio-fortsa
+    main: ./cmd
     tags:
       - "{{ .Tag }}"
       - latest
@@ -55,14 +63,14 @@ kos:
       org.opencontainers.image.source: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
 
 
-release:
-  skip_upload: true
-  footer: |
-    # Container images
+# release:
+#   skip_upload: true
+#   footer: |
+#     # Container images
 
-    ```
-    ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
-    ```
+#     ```
+#     ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
+#     ```
 
 changelog:
   sort: asc
