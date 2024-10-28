@@ -9,19 +9,21 @@ before:
     # - go vet ./...
     # - go test ./...
 
-# builds:
-#   - env:
-#       - CGO_ENABLED=0
-#     main: ./cmd
-#     binary: manager
-#     flags:
-#       - -trimpath
-#     ldflags:
-#       - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
-#     goos:
-#       - linux
-#     goarch:
-#       - amd64
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd
+    binary: manager
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
