@@ -9,19 +9,19 @@ before:
     # - go vet ./...
     # - go test ./...
 
-builds:
-  - env:
-      - CGO_ENABLED=0
-    main: ./cmd
-    binary: istio-fortsa
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
-    goos:
-      - linux
-    goarch:
-      - amd64
+# builds:
+#   - env:
+#       - CGO_ENABLED=0
+#     main: ./cmd
+#     binary: manager
+#     flags:
+#       - -trimpath
+#     ldflags:
+#       - -s -w -X main.Version={{ .Version }} -X main.Commit={{ .Commit }} -X main.CommitDate={{ .CommitDate }}
+#     goos:
+#       - linux
+#     goarch:
+#       - amd64
 
 kos:
   - base_image: gcr.io/distroless/static:nonroot
@@ -55,14 +55,14 @@ kos:
       org.opencontainers.image.source: "{{ .Env.GITHUB_SERVER_URL }}/{{ .Env.GITHUB_REPOSITORY }}"
 
 
-release:
-  skip_upload: true
-  footer: |
-    # Container images
+# release:
+#   skip_upload: true
+#   footer: |
+#     # Container images
 
-    ```
-    ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
-    ```
+#     ```
+#     ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}
+#     ```
 
 changelog:
   sort: asc
