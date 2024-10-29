@@ -344,7 +344,7 @@ helm: manifests kustomize helmify
 .PHONY: release
 release: config-update helm
 	git add ./config ./chart
-	git commit -m "Release for  version $(VERSION)"
+	git commit -m "Release for  version $(VERSION)" || true
 	git tag "v$(VERSION)"
 
 .PHONY: config-update
