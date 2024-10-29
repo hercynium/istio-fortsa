@@ -277,9 +277,7 @@ endif
 endif
 
 .PHONY: bundle
-bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
-	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+bundle: config-update ## Generate bundle manifests and metadata, then validate generated files.
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
@@ -348,3 +346,8 @@ release: bundle helm
 	git add ./config ./bundle ./chart
 	git commit -m "Release for  version $(VERSION)"
 	git tag "v$(VERSION)"
+
+.PHONY: config-update
+config-update: manifests kustomize operator-sdk ## Update generated config files
+	$(OPERATOR_SDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
