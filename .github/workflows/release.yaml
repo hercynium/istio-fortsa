@@ -57,12 +57,7 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: Run gh-pages chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: chart
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Run OCI chart-releaser
-        uses: bitdeps/helm-oci-charts-releaser@v0.1.0
-        with:
-            oci_registry: ghcr.io/${{ github.actor }}
-            oci_username: ${{ github.actor }}
-            oci_password: ${{ secrets.GITHUB_TOKEN }}
-            github_token: ${{ secrets.GITHUB_TOKEN }}
