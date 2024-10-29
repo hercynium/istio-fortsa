@@ -10,7 +10,7 @@ before:
     # - go test ./...
 
 builds:
-  - skip: true
+  - skip: false
     env:
       - CGO_ENABLED=0
     main: ./cmd
