@@ -342,3 +342,9 @@ $(HELMIFY): $(LOCALBIN)
 
 helm: manifests kustomize helmify
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
+
+.PHONY: release
+release: bundle helm
+	git add ./config ./bundle ./chart
+	git commit -m "Release for  version $(VERSION)"
+	git tag "v$(VERSION)"
