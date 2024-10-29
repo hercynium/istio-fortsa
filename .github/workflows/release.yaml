@@ -40,14 +40,29 @@ jobs:
       #     KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
       # this takes the same amount of time as using goreleaser, but doesn't create release tarballs
       - name: Build and Push Docker Images
-        run: make docker-buildx GIT_TAG=${{ github.event.release.tag_name }}
+        run: make docker-buildx IMAGE_TAG_BASE=ghcr.io/${{ github.actor }}/istio-fortsa GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Push OLM Bundle Image
-        run: make bundle bundle-build bundle-push GIT_TAG=${{ github.event.release.tag_name }}
+        run: make bundle bundle-build bundle-push IMAGE_TAG_BASE=ghcr.io/${{ github.actor }}/istio-fortsa GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Push OLM Catalog Image
-        run: make catalog-build catalog-push GIT_TAG=${{ github.event.release.tag_name }}
+        run: make catalog-build catalog-push IMAGE_TAG_BASE=ghcr.io/${{ github.actor }}/istio-fortsa GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Run gh-pages chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Run OCI chart-releaser
+        uses: bitdeps/helm-oci-charts-releaser@v0.1.0
+        with:
+            oci_registry: ghcr.io/${{ github.actor }}
+            oci_username: ${{ github.actor }}
+            oci_password: ${{ secrets.GITHUB_TOKEN }}
+            github_token: ${{ secrets.GITHUB_TOKEN }}
