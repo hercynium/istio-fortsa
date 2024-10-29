@@ -26,4 +26,8 @@ go.work
 *.swo
 *~
 
+# generated files from operator-sdk
 dist/
+
+# generated files for OLM bundle 
+bundle/
