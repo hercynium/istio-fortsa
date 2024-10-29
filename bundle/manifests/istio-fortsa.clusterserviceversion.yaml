@@ -4,10 +4,10 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2024-10-27T21:24:58Z"
+    createdAt: "2024-10-29T01:53:03Z"
     operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: istio-fortsa.v0.0.6
+  name: istio-fortsa.v0.0.13
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -136,7 +136,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: ghcr.io/hercynium/istio-fortsa:v0.0.6
+                image: ghcr.io/hercynium/istio-fortsa:v0.0.13
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -219,4 +219,4 @@ spec:
   minKubeVersion: 1.24.0
   provider:
     name: istio-fortsa
-  version: 0.0.6
+  version: 0.0.13
