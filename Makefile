@@ -332,22 +332,33 @@ catalog-push: ## Push a catalog image.
 
 HELMIFY ?= $(LOCALBIN)/helmify
 HELMIFY_VERSION ?= latest
-
 .PHONY: helmify
 helmify: $(HELMIFY) ## Download helmify locally if necessary.
 $(HELMIFY): $(LOCALBIN)
 	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,${HELMIFY_VERSION})
 
-helm: manifests kustomize helmify
+helm-generate: manifests kustomize helmify
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
-.PHONY: release
-release: config-update helm
-	git add ./config ./chart
-	git commit -m "Release for  version $(VERSION)" || true
-	git tag "v$(VERSION)"
+YQ ?= $(LOCALBIN)/yq
+YQ_VERSION ?= latest
+.PHONY: yq
+yq: $(YQ) ## Download yq locally if necessary.
+$(YQ): $(LOCALBIN)
+	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,${YQ_VERSION})
+
+.PHONY: helm-update
+helm-update: helm-generate
+	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
 
 .PHONY: config-update
 config-update: manifests kustomize operator-sdk ## Update generated config files
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+
+.PHONY: release
+release: config-update helm-update
+	git add ./config ./chart
+	git commit -m "Release for version $(VERSION)" || true
+	git tag "v$(VERSION)"
