@@ -11,4 +11,14 @@ entries:
     urls:
     - https://github.com/hercynium/istio-fortsa/releases/download/istio-fortsa-0.1.0/istio-fortsa-0.1.0.tgz
     version: 0.1.0
-generated: "2024-10-29T21:42:03.49291559Z"
+  - apiVersion: v2
+    appVersion: v0.0.17
+    created: "2024-10-30T02:15:58.416053844Z"
+    description: A Helm chart for Kubernetes
+    digest: b4cad323a757c0e2f76423bba2c75c6e009a2af89db2ce06789fe195a2c45d20
+    name: istio-fortsa
+    type: application
+    urls:
+    - https://github.com/hercynium/istio-fortsa/releases/download/istio-fortsa-v0.0.17/istio-fortsa-v0.0.17.tgz
+    version: v0.0.17
+generated: "2024-10-30T02:15:58.416061067Z"
