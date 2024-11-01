@@ -13,6 +13,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+
+      ### setup environment...
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -27,6 +30,48 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      ### generate and upload helm chart artifacts
+      
+      # - name: Upload Helm Chart to Release
+      #   uses: actions/upload-release-asset@v1.0.1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: ./bin/oq
+      #     asset_name: istio-fortsa-helm-chart-${{ github.event.release.tag_name }}
+      #     asset_content_type: binary/octet-stream
+      - name: Build and Push OCI Helm Chart
+        run: make helm-push DOCKER_REPO_BASE=ghcr.io/${{ github.actor }} GIT_TAG=${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename Helm Chart Tarball File for Upload
+        run: mv istio-fortsa-${{ github.event.release.tag_name }}.tgz istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Helm Chart Tarball to Release
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: "istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run gh-pages chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: chart
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      
+      ### build app and other release artifacts
+
       # this takes the same amount of time as using docker-build, but doesn't currently work...
       # it seems the binary in the docker image isn't being named '/manager'
       # - name: Run GoReleaser
@@ -51,17 +96,3 @@ jobs:
         run: make catalog-build catalog-push IMAGE_TAG_BASE=ghcr.io/${{ github.actor }}/istio-fortsa GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      - name: Run gh-pages chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
-        with:
-          charts_dir: chart
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
