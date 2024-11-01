@@ -38,31 +38,6 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-      ### generate and upload helm chart artifacts
-
-      - name: Build and Push OCI Helm Chart
-        run: make helm-push DOCKER_REPO_BASE=ghcr.io/${{ github.actor }} GIT_TAG=${{ github.event.release.tag_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Rename Helm Chart Tarball File for Upload
-        run: mv istio-fortsa-${{ github.event.release.tag_name }}.tgz istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Helm Chart Tarball to Release
-        uses: AButler/upload-release-assets@v3.0
-        with:
-          files: "istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run gh-pages chart-releaser
-        uses: fhofherr/chart-releaser-action@171-unbound-variable-latest_tag # 1.6.0 is broken with error "latest_tag: unbound variable" (issue #171)
-        with:
-          charts_dir: chart
-          skip_packaging: true
-          skip_existing: true
-          config: .cr.yaml
-        env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       
       ### build app and other release artifacts
 
@@ -90,3 +65,29 @@ jobs:
         run: make catalog-build catalog-push IMAGE_TAG_BASE=ghcr.io/${{ github.actor }}/istio-fortsa GIT_TAG=${{ github.event.release.tag_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      ### generate and upload helm chart artifacts
+
+      - name: Build and Push OCI Helm Chart
+        run: make helm-push DOCKER_REPO_BASE=ghcr.io/${{ github.actor }} GIT_TAG=${{ github.event.release.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename Helm Chart Tarball File for Upload
+        run: mv istio-fortsa-${{ github.event.release.tag_name }}.tgz istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Helm Chart Tarball to Release
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: "istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run gh-pages chart-releaser
+        # uses: helm/chart-releaser-action@1.6.0 # 1.6.0 is broken with error "latest_tag: unbound variable" (issue #171)
+        uses: fhofherr/chart-releaser-action@171-unbound-variable-latest_tag # I found a fork with a fix...
+        with:
+          charts_dir: chart
+          skip_packaging: true
+          skip_existing: true
+          config: .cr.yaml
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
