@@ -55,7 +55,7 @@ jobs:
           files: "istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run gh-pages chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: helm/chart-releaser-action@v1.5.0 # 1.6.0 is broken with error "latest_tag: unbound variable" (issue #171)
         with:
           charts_dir: chart
           skip_packaging: true
