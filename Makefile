@@ -35,12 +35,14 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
+DOCKER_REPO_BASE ?= ghcr.io/hercynium
+
 # IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # ghcr.io/hercynium/istio-fortsa-bundle:$VERSION and ghcr.io/hercynium/istio-fortsa-catalog:$VERSION.
-IMAGE_TAG_BASE ?= ghcr.io/hercynium/istio-fortsa
+IMAGE_TAG_BASE ?= $(DOCKER_REPO_BASE)/istio-fortsa
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -182,6 +184,29 @@ build-installer: manifests generate kustomize ## Generate a consolidated YAML wi
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default > dist/install.yaml
 
+
+.PHONY: config-update
+config-update: manifests kustomize operator-sdk ## Update generated config files
+	$(OPERATOR_SDK) generate kustomize manifests -q
+	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+
+.PHONY: bundle
+bundle: config-update ## Generate bundle manifests and metadata, then validate generated files.
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	$(OPERATOR_SDK) bundle validate ./bundle
+
+.PHONY: bundle-build
+bundle-build: ## Build the bundle image.
+	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
+helm-generate: config-update ## Generate a generic helm chart for the operator
+	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
+
+.PHONY: helm-update
+helm-update: helm-generate ## Customize the helm chart from helm-generate
+	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -276,19 +301,6 @@ OPERATOR_SDK = $(shell which operator-sdk)
 endif
 endif
 
-.PHONY: bundle
-bundle: config-update ## Generate bundle manifests and metadata, then validate generated files.
-	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
-	$(OPERATOR_SDK) bundle validate ./bundle
-
-.PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
-
 .PHONY: opm
 OPM = $(LOCALBIN)/opm
 opm: ## Download opm locally if necessary.
@@ -306,6 +318,22 @@ OPM = $(shell which opm)
 endif
 endif
 
+YQ ?= $(LOCALBIN)/yq
+YQ_VERSION ?= latest
+.PHONY: yq
+yq: $(YQ) ## Download yq locally if necessary.
+$(YQ): $(LOCALBIN)
+	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,${YQ_VERSION})
+
+HELMIFY ?= $(LOCALBIN)/helmify
+HELMIFY_VERSION ?= latest
+.PHONY: helmify
+helmify: $(HELMIFY) ## Download helmify locally if necessary.
+$(HELMIFY): $(LOCALBIN)
+	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,${HELMIFY_VERSION})
+
+##@ Release
+
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
@@ -317,6 +345,11 @@ CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
 ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
+
+
+.PHONY: bundle-push
+bundle-push: ## Push the bundle image.
+	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
 
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
@@ -330,35 +363,18 @@ catalog-build: opm ## Build a catalog image.
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
-HELMIFY ?= $(LOCALBIN)/helmify
-HELMIFY_VERSION ?= latest
-.PHONY: helmify
-helmify: $(HELMIFY) ## Download helmify locally if necessary.
-$(HELMIFY): $(LOCALBIN)
-	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,${HELMIFY_VERSION})
+.PHONY: helm-package
+helm-package: helm-update ## Package the helm chart into a tarball
+	helm package chart/istio-fortsa
 
-helm-generate: manifests kustomize helmify
-	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
+./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
-YQ ?= $(LOCALBIN)/yq
-YQ_VERSION ?= latest
-.PHONY: yq
-yq: $(YQ) ## Download yq locally if necessary.
-$(YQ): $(LOCALBIN)
-	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,${YQ_VERSION})
-
-.PHONY: helm-update
-helm-update: helm-generate
-	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
-	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
-
-.PHONY: config-update
-config-update: manifests kustomize operator-sdk ## Update generated config files
-	$(OPERATOR_SDK) generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+.PHONY: helm-push
+helm-push: ./istio-fortsa-$(IMG_TAG).tgz ## Push the helm chart to an OCI registry
+	helm push ./istio-fortsa-$(IMG_TAG).tgz oci://$(DOCKER_REPO_BASE)/helm
 
 .PHONY: release
-release: config-update helm-update
+release: config-update helm-update ## Prepare for a release
 	git add ./config ./chart
 	git commit -m "Release for version $(VERSION)" || true
 	git tag "v$(VERSION)"

@@ -31,3 +31,6 @@ dist/
 
 # generated files for OLM bundle 
 bundle/
+
+# generated files for helm
+istio-fortsa*.tgz
