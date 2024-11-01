@@ -199,11 +199,11 @@ bundle: config-update ## Generate bundle manifests and metadata, then validate g
 bundle-build: ## Build the bundle image.
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
-helm-generate: config-update ## Generate a generic helm chart for the operator
+helm-generate: helmify config-update ## Generate a generic helm chart for the operator
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
 .PHONY: helm-update
-helm-update: helm-generate ## Customize the helm chart from helm-generate
+helm-update: yq helm-generate ## Customize the helm chart from helm-generate
 	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
 	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
 
