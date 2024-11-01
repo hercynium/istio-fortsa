@@ -318,19 +318,19 @@ OPM = $(shell which opm)
 endif
 endif
 
-YQ ?= $(LOCALBIN)/yq
-YQ_VERSION ?= latest
+YQ_VERSION ?= v4.44.3
+YQ ?= $(LOCALBIN)/yq-$(YQ_VERSION)
 .PHONY: yq
 yq: $(YQ) ## Download yq locally if necessary.
 $(YQ): $(LOCALBIN)
-	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,${YQ_VERSION})
+	$(call go-install-tool,$(YQ),github.com/mikefarah/yq/v4,$(YQ_VERSION))
 
-HELMIFY ?= $(LOCALBIN)/helmify
-HELMIFY_VERSION ?= latest
+HELMIFY_VERSION ?= v0.4.14
+HELMIFY ?= $(LOCALBIN)/helmify-$(HELMIFY_VERSION)
 .PHONY: helmify
 helmify: $(HELMIFY) ## Download helmify locally if necessary.
 $(HELMIFY): $(LOCALBIN)
-	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,${HELMIFY_VERSION})
+	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,$(HELMIFY_VERSION))
 
 ##@ Release
 
