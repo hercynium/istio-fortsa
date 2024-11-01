@@ -60,7 +60,6 @@ jobs:
           charts_dir: chart
           skip_packaging: true
           skip_existing: true
-          skip_upload: true
           config: .cr.yaml
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
