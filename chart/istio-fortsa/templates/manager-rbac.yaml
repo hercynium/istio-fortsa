@@ -51,6 +51,7 @@ rules:
   resources:
   - daemonset
   - deployment
+  - replicaset
   - statefulset
   verbs:
   - get
