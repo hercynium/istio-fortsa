@@ -85,7 +85,7 @@ function install-fortsa() {
   createXnamespace istio-fortsa
   helmXinstall istio-fortsa istio-fortsa istio-fortsa/istio-fortsa \
     --wait \
-    --version "v0.0.18"
+    --version "v0.0.19"
 }
 
 function install-bookinfo() {
