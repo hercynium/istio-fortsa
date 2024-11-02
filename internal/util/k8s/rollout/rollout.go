@@ -21,6 +21,7 @@ const (
 
 //+kubebuilder:rbac:groups=apps,resources=deployment,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=apps,resources=daemonset,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=apps,resources=replicaset,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulset,verbs=get;list;watch;update;patch
 
 // DoRolloutRestart handles rollout restart of object by patching with annotation
