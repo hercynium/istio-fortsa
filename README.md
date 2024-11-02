@@ -33,84 +33,30 @@ YouTube video: https://youtu.be/R86ZsYH7Ka4
 - go version v1.21.0+
 - docker version 17.03+.
 - kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster running Istio
+- Access to a Kubernetes v1.11.3+ cluster running Istio (lowest version not yet determined)
 
 ### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
 
-```sh
-make docker-buildx IMG=sscaffidi/istio-fortsa:tag
+This project is packaged for deployment using Helm or OLM. See the "Packages" for the
+various docker images available. The helm repo is here:
+
+```
+https://hercynium.github.io/istio-fortsa/
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
-
-```sh
-make install
-```
-
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
-
-```sh
-make deploy IMG=sscaffidi/istio-fortsa:tag
-```
-
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
-kubectl apply -k config/samples/
-```
-
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
-```
-
-**UnDeploy the controller from the cluster:**
-
-```sh
-make undeploy
-```
+Installation should be like any other app packeged for Helm or OLM depending on the
+method you want to use.
 
 ## Project Distribution
 
-Following are the steps to build the installer and distribute this project to users.
+When a release is published, the project uses a Github Action to build several artifacts,
+including Docker images of the Operator application, OLM bundle, OLM catalog, and the Helm
+chart. The helm chart tarball is also attached to the release alongside the source code
+archives.
 
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=sscaffidi/istio-fortsa:tag
-```
-
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
-
-2. Using the installer
-
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/hercynium/istio-fortsa/<tag or branch>/dist/install.yaml
-```
+Because this project was created using the operator-sdk, which itself is a wrapper around
+kubebuilder, please look at the documentation for those frameworks for more info about
+build, test, distribution, and deployment details.
 
 ## TODO
 
