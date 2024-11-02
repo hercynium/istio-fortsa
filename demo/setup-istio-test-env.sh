@@ -81,6 +81,13 @@ function install-istio() {
   istioctl tag generate canary --overwrite --revision "v${ISTIO_V1//./-}" | kubectl apply -f - 
 }
 
+function install-fortsa() {
+  createXnamespace istio-fortsa
+  helmXinstall istio-fortsa istio-fortsa istio-fortsa/istio-fortsa \
+    --wait \
+    --version "v0.0.18"
+}
+
 function install-bookinfo() {
   local ns="${1:-bookinfo-stable}" rev="${2:-stable}"
   # enable auto-injection on the bookinfo namespace
@@ -142,6 +149,7 @@ function rollback-istio-upgrade() {
 function setup-demo() {
   init-cluster
   install-istio
+  install-fortsa
   install-bookinfo bookinfo-stable stable
   install-bookinfo bookinfo-canary canary
 }
