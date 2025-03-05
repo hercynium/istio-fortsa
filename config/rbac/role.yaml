@@ -49,9 +49,13 @@ rules:
   - apps
   resources:
   - daemonset
+  - daemonsets
   - deployment
+  - deployments
   - replicaset
+  - replicasets
   - statefulset
+  - statefulsets
   verbs:
   - get
   - list
