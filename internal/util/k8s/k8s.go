@@ -58,7 +58,7 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 
 	controller, err := getPodController(ctx, dynamic, res)
 	if err != nil {
-		return nil, &ControllerNotFoundError{fmt.Sprintf("Couldn't find controller of pod %v.%v", pod.Name, pod.Namespace)}
+		return nil, &ControllerNotFoundError{fmt.Sprintf("Couldn't find controller of pod %v.%v: %v", pod.Name, pod.Namespace, err)}
 	}
 
 	log.Info("Found controller for outdated pod", "pod-name", pod.Name, "controller-name", controller.GetName())
