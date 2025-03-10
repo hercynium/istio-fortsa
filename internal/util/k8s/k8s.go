@@ -51,7 +51,7 @@ func FindPodController(ctx context.Context, kubeClient kubernetes.Clientset, pod
 
 	res, err := dynamic.Resource(resourceId).Namespace(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 	if err != nil {
-		return nil, &PodNotFoundError{fmt.Sprintf("Couldn't find pod %v.%v", pod.Name, pod.Namespace)}
+		return nil, &PodNotFoundError{fmt.Sprintf("Couldn't find pod %v.%v: %v", pod.Name, pod.Namespace, err)}
 	}
 
 	// find the top-level controller
