@@ -177,11 +177,6 @@ func XdsStatusCommand(ctx cli.Context, xdsResponsesChannel chan XDSResponses) *c
 
 	opts.AttachControlPlaneFlags(statusCmd)
 	centralOpts.AttachControlPlaneFlags(statusCmd)
-	statusCmd.PersistentFlags().BoolVar(&multiXdsOpts.XdsViaAgents, "xds-via-agents", false,
-		"Access Istiod via the tap service of each agent")
-	statusCmd.PersistentFlags().IntVar(&multiXdsOpts.XdsViaAgentsLimit, "xds-via-agents-limit", 100,
-		"Maximum number of pods being visited by istioctl when `xds-via-agent` flag is true."+
-			"To iterate all the agent pods without limit, set to 0")
 
 	return statusCmd
 }
