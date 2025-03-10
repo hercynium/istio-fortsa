@@ -82,7 +82,7 @@ jobs:
           files: "istio-fortsa-helm-chart-${{ github.event.release.tag_name }}.tgz"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run gh-pages chart-releaser
-        uses: helm/chart-releaser-action@1.7.0 # 1.6.0 is broken with error "latest_tag: unbound variable" (issue #171)
+        uses: helm/chart-releaser-action@v1.7.0 # 1.6.0 is broken with error "latest_tag: unbound variable" (issue #171)
         # uses: fhofherr/chart-releaser-action@171-unbound-variable-latest_tag # I found a fork with a fix...
         with:
           charts_dir: chart
