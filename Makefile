@@ -199,7 +199,7 @@ bundle: config-update ## Generate bundle manifests and metadata, then validate g
 bundle-build: ## Build the bundle image.
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
-helmify-generate: helmify config-update ## Generate a generic helm chart for the operator
+helmify-generate: helmify config-update ## Generate a generic helm chart for the operator (DEPRECATED)
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
 .PHONY: helm-update
