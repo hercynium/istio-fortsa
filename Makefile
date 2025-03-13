@@ -61,11 +61,11 @@ endif
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
-OPERATOR_SDK_VERSION ?= v1.36.1
+OPERATOR_SDK_VERSION ?= v1.39.1
 # Image URL to use all building/pushing image targets
 IMG ?= $(IMAGE_TAG_BASE):$(IMG_TAG)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.32.2
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -199,13 +199,19 @@ bundle: config-update ## Generate bundle manifests and metadata, then validate g
 bundle-build: ## Build the bundle image.
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
-helm-generate: helmify config-update ## Generate a generic helm chart for the operator
+helmify-generate: helmify config-update ## Generate a generic helm chart for the operator
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
 .PHONY: helm-update
-helm-update: yq helm-generate ## Customize the helm chart from helm-generate
-	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
-	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+helm-update: yq config-update ## Customize the helm chart from make manifests
+	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
+	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
+
+.PHONY: helm-clobber
+helm-clobber: helm-update ## Copy the generated chart from dist/chart into chart/istio-fortsa
+	mkdir -p chart
+	rm -rf chart/istio-fortsa
+	cp -a dist/chart chart/istio-fortsa
 
 ##@ Deployment
 
@@ -245,8 +251,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.3
-CONTROLLER_TOOLS_VERSION ?= v0.16.4 # v0.14.0
+KUSTOMIZE_VERSION ?= v5.6.0
+CONTROLLER_TOOLS_VERSION ?= v0.17.2
 ENVTEST_VERSION ?= release-0.17
 GOLANGCI_LINT_VERSION ?= v1.61.0
 
@@ -365,7 +371,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: helm-package
 helm-package: helm-update ## Package the helm chart into a tarball
-	helm package chart/istio-fortsa
+	helm package dist/chart/
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
@@ -375,6 +381,6 @@ helm-push: ./istio-fortsa-$(IMG_TAG).tgz ## Push the helm chart to an OCI regist
 
 .PHONY: release
 release: config-update helm-update ## Prepare for a release
-	git add ./config ./chart
+	git add ./config
 	git commit -m "Release for version $(VERSION)" || true
 	git tag "v$(VERSION)"
