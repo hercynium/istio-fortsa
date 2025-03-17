@@ -3,20 +3,27 @@ package istiodata
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	xdsstatus "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
-	"istio.io/istio/istioctl/pkg/multixds"
-	"istio.io/istio/pilot/pkg/model"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	envoyDiscovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoyStatus "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
 
-	"github.com/hercynium/istio-fortsa/internal/util/istio/proxystatus"
+	istioModel "istio.io/istio/pilot/pkg/model"
+	istioXds "istio.io/istio/pilot/pkg/xds"
+	istioKube "istio.io/istio/pkg/kube"
+	istioLog "istio.io/istio/pkg/log"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sClient "k8s.io/client-go/kubernetes"
+	k8sClientCmd "k8s.io/client-go/tools/clientcmd"
+	k8sCtrlLog "sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/hercynium/istio-fortsa/internal/util/istio/newproxystatus"
 	"github.com/hercynium/istio-fortsa/internal/util/istio/tags"
 )
 
@@ -53,8 +60,8 @@ func (id *IstioData) PrintProxyStatusData(ctx context.Context) {
 	}
 }
 
-func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernetes.Clientset) error {
-	log := log.FromContext(ctx)
+func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *k8sClient.Clientset) error {
+	log := k8sCtrlLog.FromContext(ctx)
 
 	if !id.mu.TryLock() {
 		log.Info("The data is currently being updated")
@@ -92,7 +99,7 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernete
 	}
 	//PrintRevisionTagInfo(ctx, id.TagInfo)
 
-	sd, err := GetProxyStatusData(ctx, kubeClient)
+	sd, err := GetNewProxyStatusData(ctx, kubeClient)
 	if err != nil {
 		log.Error(err, "Couldn't update proxy status data")
 		return err
@@ -107,8 +114,8 @@ func (id *IstioData) RefreshIstioData(ctx context.Context, kubeClient *kubernete
 }
 
 // TODO: allow passing namespace to limit search to one namespace? Would be useful to call from namespace controller
-func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes.Clientset) ([]corev1.Pod, error) {
-	log := log.FromContext(ctx)
+func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *k8sClient.Clientset) ([]corev1.Pod, error) {
+	log := k8sCtrlLog.FromContext(ctx)
 	log.Info("Checking proxied pods")
 	var oldPods = []corev1.Pod{}
 	for _, ps := range r.ProxyStatuses {
@@ -120,7 +127,7 @@ func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes
 		if confRev != ps.IstiodRevision {
 			log.Info("Outdated Pod Found", "pod", ps.ProxiedPodName, "ns", ps.ProxiedPodNamespace, "proxyIstioRev", ps.IstiodRevision, "nsIstioRev", confRev)
 			// TODO: here is where we label the pod
-			pod, err := kubeClient.CoreV1().Pods(ps.ProxiedPodNamespace).Get(ctx, ps.ProxiedPodName, v1.GetOptions{})
+			pod, err := kubeClient.CoreV1().Pods(ps.ProxiedPodNamespace).Get(ctx, ps.ProxiedPodName, metav1.GetOptions{})
 			if err != nil {
 				log.Error(err, "Couldn't retrieve pod from api, continuing...")
 				continue //return nil, err
@@ -132,8 +139,8 @@ func (r *IstioData) CheckProxiedPods(ctx context.Context, kubeClient *kubernetes
 	return oldPods, nil
 }
 
-func GetRevisionTagInfo(ctx context.Context, kubeClient *kubernetes.Clientset) ([]tags.TagDescription, error) {
-	log := log.FromContext(ctx)
+func GetRevisionTagInfo(ctx context.Context, kubeClient *k8sClient.Clientset) ([]tags.TagDescription, error) {
+	log := k8sCtrlLog.FromContext(ctx)
 	// get tag -> revision -> namespaces mapping
 	tagInfo, err := tags.GetTags(ctx, kubeClient)
 	if err != nil {
@@ -143,33 +150,96 @@ func GetRevisionTagInfo(ctx context.Context, kubeClient *kubernetes.Clientset) (
 	return tagInfo, nil
 }
 
-// this should be called from the controllers - it will fetch and process the istio data
-func GetProxyStatusData(ctx context.Context, kubeClient *kubernetes.Clientset) ([]IstioProxyStatusData, error) {
-	log := log.FromContext(ctx)
+// do the same thing as the cli command `istioctl proxy-status` but without shelling out.
+func GetNewProxyStatusData(ctx context.Context, _ *k8sClient.Clientset) ([]IstioProxyStatusData, error) {
+	log := k8sCtrlLog.FromContext(ctx)
 
-	var istioProxyStatusData []IstioProxyStatusData
+	// istio library calls have their own logging. Configure it here.
+	e := istioLog.Configure(defaultIstioLogOptions())
+	if e != nil {
+		log.Error(e, "Failed to init istio library logger")
+		return nil, e
+	}
 
-	// see here for how to navigate the proxy-status data:
-	//   https://github.com/istio/istio/blob/master/istioctl/pkg/writer/pilot/status.go
-	xdsResponses := proxystatus.GetProxyStatus()
+	istioNamespace := "istio-system"
+
+	// TODO: set these options from configuration using something like viper
+	timeout, _ := time.ParseDuration("30s")
+	centralOpts := newproxystatus.CentralControlPlaneOptions{
+		XdsPodPort: 15012,
+		Timeout:    timeout,
+	}
+
+	kubeClient, e := getDefaultKubeCLIClient()
+	if e != nil {
+		log.Error(e, "Failed to init kubeClient")
+		return nil, e
+	}
+
+	xdsRequest := &envoyDiscovery.DiscoveryRequest{
+		TypeUrl: istioXds.TypeDebugSyncronization,
+	}
+
+	// this isn't really necessary but we're keeping it for compatibility with the code
+	// copied from istio's source into the newproxystatus package.
+	multiXdsOpts := newproxystatus.Options{
+		MessageWriter: os.Stderr,
+	}
+
+	// call the code we copied from istioctl proxystatus and modified so we can use it like a library
+	xdsResponses, e := newproxystatus.AllRequestAndProcessXds(xdsRequest, centralOpts, istioNamespace, "", "", kubeClient, multiXdsOpts)
+	if e != nil {
+		log.Error(e, "Failed to get proxyStatus")
+		return nil, e
+	}
+
+	return getIstioProxyStatusData(xdsResponses, istioNamespace)
+}
+
+// config for internal logging in istio code
+// code lifted from: https://github.com/istio/istio/blob/1.25.0/istioctl/pkg/root/root.go#L38
+func defaultIstioLogOptions() *istioLog.Options {
+	o := istioLog.DefaultOptions()
+	// Default to warning for everything; we usually don't want logs in istioctl
+	o.SetDefaultOutputLevel("all", istioLog.WarnLevel)
+	// These scopes are too noisy even at warning level
+	o.SetDefaultOutputLevel("validation", istioLog.ErrorLevel)
+	o.SetDefaultOutputLevel("processing", istioLog.ErrorLevel)
+	o.SetDefaultOutputLevel("kube", istioLog.ErrorLevel)
+	return o
+}
+
+// get a working default k8s client we can pass to istio library colls
+// code lifted from: https://pkg.go.dev/k8s.io/client-go@v0.32.1/tools/clientcmd
+func getDefaultKubeCLIClient() (istioKube.CLIClient, error) {
+	loadingRules := k8sClientCmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &k8sClientCmd.ConfigOverrides{}
+	kubeConfig := k8sClientCmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	return istioKube.NewCLIClient(istioKube.NewClientConfigForRestConfig(config))
+}
+
+func getIstioProxyStatusData(xdsResponses map[string]*envoyDiscovery.DiscoveryResponse, istioNamespace string) ([]IstioProxyStatusData, error) {
+	istioProxyStatusData := []IstioProxyStatusData{}
 	for _, response := range xdsResponses {
 		for _, resource := range response.Resources {
-			clientConfig := xdsstatus.ClientConfig{}
+			clientConfig := envoyStatus.ClientConfig{}
 			err := resource.UnmarshalTo(&clientConfig)
 			if err != nil {
-				log.Error(err, "could not unmarshal ClientConfig")
-				return nil, err
+				return nil, fmt.Errorf("could not unmarshal ClientConfig: %v", err)
 			}
-			meta, err := model.ParseMetadata(clientConfig.GetNode().GetMetadata())
+			meta, err := istioModel.ParseMetadata(clientConfig.GetNode().GetMetadata())
 			if err != nil {
-				log.Error(err, "could not parse node metadata")
-				return nil, err
+				return nil, fmt.Errorf("could not parse node metadata: %v", err)
 			}
-			cp := multixds.CpInfo(response)
+			cp := newproxystatus.CpInfo(response)
 			istioProxyStatusData = append(istioProxyStatusData, IstioProxyStatusData{
 				ClusterID:           meta.ClusterID.String(),
 				IstiodPodName:       cp.ID,
-				IstiodPodNamespace:  "istio-system", // TODO: figure out how to get this dynamically
+				IstiodPodNamespace:  istioNamespace, // TODO: figure out how to get this dynamically
 				IstiodRevision:      regexp.MustCompile(`^istiod-(.*)-[^-]+-[^-]+$`).ReplaceAllString(cp.ID, `$1`),
 				IstiodVersion:       meta.IstioVersion,
 				ProxiedPodId:        clientConfig.GetNode().GetId(),
