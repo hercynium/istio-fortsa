@@ -371,7 +371,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: helm-package
 helm-package: helm-update ## Package the helm chart into a tarball
-	helm package dist/chart/
+	helm package chart/istio-fortsa
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
