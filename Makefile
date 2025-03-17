@@ -202,8 +202,12 @@ bundle-build: ## Build the bundle image.
 helmify-generate: helmify config-update ## Generate a generic helm chart for the operator (DEPRECATED)
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
+.PHONY: helm-generate
+helm-generate: config-update
+	kubebuilder edit --plugins helm/v1-alpha
+
 .PHONY: helm-update
-helm-update: yq config-update ## Customize the helm chart from make manifests
+helm-update: yq helm-generate ## Customize the helm chart from make manifests
 	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
 	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
 
@@ -371,7 +375,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: helm-package
 helm-package: helm-update ## Package the helm chart into a tarball
-	helm package chart/istio-fortsa
+	helm package dist/chart
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
