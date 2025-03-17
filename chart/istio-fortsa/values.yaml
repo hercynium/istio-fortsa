@@ -1,45 +1,14 @@
-cmMetricsSvc:
-  ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: https
-  type: ClusterIP
+# [MANAGER]: Manager Deployment Configurations
 controllerManager:
-  kubeRbacProxy:
-    args:
-    - --secure-listen-address=0.0.0.0:8443
-    - --upstream=http://127.0.0.1:8080/
-    - --logtostderr=true
-    - --v=0
-    containerSecurityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-        - ALL
+  replicas: 1
+  container:
     image:
-      repository: gcr.io/kubebuilder/kube-rbac-proxy
-      tag: v0.16.0
-    resources:
-      limits:
-        cpu: 500m
-        memory: 128Mi
-      requests:
-        cpu: 5m
-        memory: 64Mi
-  manager:
+      repository: controller
+      tag: latest
     args:
-    - --health-probe-bind-address=:8081
-    - --metrics-bind-address=127.0.0.1:8080
-    - --leader-elect
-    containerSecurityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-        - ALL
-    image:
-      repository: ghcr.io/hercynium/istio-fortsa
-      tag: v0.0.23
+      - "--leader-elect"
+      - "--metrics-bind-address=:8443"
+      - "--health-probe-bind-address=:8081"
     resources:
       limits:
         cpu: 500m
@@ -47,9 +16,61 @@ controllerManager:
       requests:
         cpu: 10m
         memory: 64Mi
-  podSecurityContext:
+    livenessProbe:
+      initialDelaySeconds: 15
+      periodSeconds: 20
+      httpGet:
+        path: /healthz
+        port: 8081
+    readinessProbe:
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      httpGet:
+        path: /readyz
+        port: 8081
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - "ALL"
+  securityContext:
     runAsNonRoot: true
-  replicas: 1
-  serviceAccount:
-    annotations: {}
-kubernetesClusterDomain: cluster.local
+    seccompProfile:
+      type: RuntimeDefault
+  terminationGracePeriodSeconds: 10
+  serviceAccountName: istio-fortsa-controller-manager
+
+# [RBAC]: To enable RBAC (Permissions) configurations
+rbac:
+  enable: true
+
+# [CRDs]: To enable the CRDs
+crd:
+  # This option determines whether the CRDs are included
+  # in the installation process.
+  enable: true
+
+  # Enabling this option adds the "helm.sh/resource-policy": keep
+  # annotation to the CRD, ensuring it remains installed even when
+  # the Helm release is uninstalled.
+  # NOTE: Removing the CRDs will also remove all cert-manager CR(s)
+  # (Certificates, Issuers, ...) due to garbage collection.
+  keep: true
+
+# [METRICS]: Set to true to generate manifests for exporting metrics.
+# To disable metrics export set false, and ensure that the
+# ControllerManager argument "--metrics-bind-address=:8443" is removed.
+metrics:
+  enable: true
+
+# [PROMETHEUS]: To enable a ServiceMonitor to export metrics to Prometheus set true
+prometheus:
+  enable: false
+
+# [CERT-MANAGER]: To enable cert-manager injection to webhooks set true
+certmanager:
+  enable: false
+
+# [NETWORK POLICIES]: To enable NetworkPolicies set true
+networkPolicy:
+  enable: false

@@ -1,9 +1,11 @@
+{{- if .Values.rbac.enable }}
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "istio-fortsa.fullname" . }}-manager-role
   labels:
-  {{- include "istio-fortsa.labels" . | nindent 4 }}
+    {{- include "chart.labels" . | nindent 4 }}
+  name: istio-fortsa-manager-role
 rules:
 - apiGroups:
   - ""
@@ -63,18 +65,4 @@ rules:
   - patch
   - update
   - watch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ include "istio-fortsa.fullname" . }}-manager-rolebinding
-  labels:
-  {{- include "istio-fortsa.labels" . | nindent 4 }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: '{{ include "istio-fortsa.fullname" . }}-manager-role'
-subjects:
-- kind: ServiceAccount
-  name: '{{ include "istio-fortsa.fullname" . }}-controller-manager'
-  namespace: '{{ .Release.Namespace }}'
+{{- end -}}
