@@ -382,5 +382,5 @@ helm-push: ./istio-fortsa-$(IMG_TAG).tgz ## Push the helm chart to an OCI regist
 .PHONY: release
 release: config-update helm-update ## Prepare for a release
 	git add ./config
-	git commit -m "Release for version $(VERSION)" || true
-	git tag "v$(VERSION)"
+#	git commit -m "Release for version $(VERSION)" || true
+#	git tag "v$(VERSION)"
