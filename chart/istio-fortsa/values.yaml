@@ -3,8 +3,8 @@ controllerManager:
   replicas: 1
   container:
     image:
-      repository: controller
-      tag: latest
+      repository: ghcr.io/hercynium/istio-fortsa
+      tag: v0.0.25-5-g2977444
     args:
       - "--leader-elect"
       - "--metrics-bind-address=:8443"
@@ -39,38 +39,31 @@ controllerManager:
       type: RuntimeDefault
   terminationGracePeriodSeconds: 10
   serviceAccountName: istio-fortsa-controller-manager
-
 # [RBAC]: To enable RBAC (Permissions) configurations
 rbac:
   enable: true
-
 # [CRDs]: To enable the CRDs
 crd:
   # This option determines whether the CRDs are included
   # in the installation process.
   enable: true
-
   # Enabling this option adds the "helm.sh/resource-policy": keep
   # annotation to the CRD, ensuring it remains installed even when
   # the Helm release is uninstalled.
   # NOTE: Removing the CRDs will also remove all cert-manager CR(s)
   # (Certificates, Issuers, ...) due to garbage collection.
   keep: true
-
 # [METRICS]: Set to true to generate manifests for exporting metrics.
 # To disable metrics export set false, and ensure that the
 # ControllerManager argument "--metrics-bind-address=:8443" is removed.
 metrics:
   enable: true
-
 # [PROMETHEUS]: To enable a ServiceMonitor to export metrics to Prometheus set true
 prometheus:
   enable: false
-
 # [CERT-MANAGER]: To enable cert-manager injection to webhooks set true
 certmanager:
   enable: false
-
 # [NETWORK POLICIES]: To enable NetworkPolicies set true
 networkPolicy:
   enable: false

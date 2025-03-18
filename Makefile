@@ -203,16 +203,18 @@ helmify-generate: helmify config-update ## Generate a generic helm chart for the
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
 .PHONY: helm-generate
-helm-generate: kubebuilder config-update
+helm-generate: kubebuilder config-update ## Generate a helm chart using kubebuilder into dist/chart
 	$(KUBEBUILDER) edit --plugins helm/v1-alpha
 
-.PHONY: helm-update
-helm-update: yq helm-generate ## Customize the helm chart from make manifests
+.PHONY: helm-fixup
+helm-fixup: yq helm-generate ## Customize the generated helm chart from kubebuilder
 	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
 	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
+	$(YQ) -i eval ".controllerManager.container.image.repository = \"$(IMAGE_TAG_BASE)\"" dist/chart/values.yaml
+	$(YQ) -i eval ".controllerManager.container.image.tag = \"$(IMG_TAG)\"" dist/chart/values.yaml
 
-.PHONY: helm-clobber
-helm-clobber: helm-update ## Copy the generated chart from dist/chart into chart/istio-fortsa
+.PHONY: helm-update
+helm-update: helm-fixup ## Copy the chart from dist/chart into chart/istio-fortsa
 	mkdir -p chart
 	rm -rf chart/istio-fortsa
 	cp -a dist/chart chart/istio-fortsa
@@ -263,7 +265,7 @@ ENVTEST_VERSION ?= release-0.17
 GOLANGCI_LINT_VERSION ?= v1.61.0
 
 .PHONY: kubebuilder
-kubebuilder: $(KUBEBUILDER)
+kubebuilder: $(KUBEBUILDER) ## Download kubebuilder locally if necessary.
 $(KUBEBUILDER): $(LOCALBIN)
 	$(call go-install-tool,$(KUBEBUILDER),sigs.k8s.io/kubebuilder/v4,$(KUBEBUILDER_VERSION))
 
@@ -345,7 +347,7 @@ $(YQ): $(LOCALBIN)
 HELMIFY_VERSION ?= v0.4.14
 HELMIFY ?= $(LOCALBIN)/helmify-$(HELMIFY_VERSION)
 .PHONY: helmify
-helmify: $(HELMIFY) ## Download helmify locally if necessary.
+helmify: $(HELMIFY) ## Download helmify locally if necessary. (DEPRECATED)
 $(HELMIFY): $(LOCALBIN)
 	$(call go-install-tool,$(HELMIFY),github.com/arttor/helmify/cmd/helmify,$(HELMIFY_VERSION))
 
@@ -382,7 +384,7 @@ catalog-push: ## Push a catalog image.
 
 .PHONY: helm-package
 helm-package: helm-update ## Package the helm chart into a tarball
-	helm package dist/chart
+	helm package chart/istio-fortsa
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
