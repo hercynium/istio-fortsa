@@ -180,10 +180,11 @@ func GetNewProxyStatusData(ctx context.Context, _ *k8sClient.Clientset) ([]Istio
 		TypeUrl: istioXds.TypeDebugSyncronization,
 	}
 
-	// this isn't really necessary but we're keeping it for compatibility with the code
-	// copied from istio's source into the newproxystatus package.
 	multiXdsOpts := newproxystatus.Options{
 		MessageWriter: os.Stderr,
+		// added so we can ignore errors where one or more XDS requests has an error, so we can
+		// (hopefully) get at least part of the proxy status data.
+		IgnoreXdsErrors: true,
 	}
 
 	// call the code we copied from istioctl proxystatus and modified so we can use it like a library

@@ -39,6 +39,7 @@ import (
 	"istio.io/api/label"
 	pilotxds "istio.io/istio/pilot/pkg/xds"
 	"istio.io/istio/pkg/kube"
+	"istio.io/istio/pkg/log"
 	istioversion "istio.io/istio/pkg/version"
 )
 
@@ -61,7 +62,8 @@ var _ error = ControlPlaneNotFoundError{}
 
 type Options struct {
 	// MessageWriter is a writer for displaying messages to users.
-	MessageWriter io.Writer
+	MessageWriter   io.Writer
+	IgnoreXdsErrors bool
 }
 
 var DefaultOptions = Options{
@@ -84,7 +86,8 @@ func RequestAndProcessXds(dr *discovery.DiscoveryRequest, centralOpts CentralCon
 //var GetXdsResponse = xds.GetXdsResponse
 
 // nolint: lll
-func queryEachShard(all bool, dr *discovery.DiscoveryRequest, istioNamespace string, kubeClient kube.CLIClient, centralOpts CentralControlPlaneOptions) ([]*discovery.DiscoveryResponse, error) {
+func queryEachShard(all bool, dr *discovery.DiscoveryRequest, istioNamespace string, kubeClient kube.CLIClient,
+	centralOpts CentralControlPlaneOptions, ignoreXdsErrors bool) ([]*discovery.DiscoveryResponse, error) {
 	labelSelector := centralOpts.XdsPodLabel
 	if labelSelector == "" {
 		labelSelector = "app=istiod"
@@ -124,6 +127,10 @@ func queryEachShard(all bool, dr *discovery.DiscoveryRequest, istioNamespace str
 		xdsOpts.Xds = fw.Address()
 		response, err := GetXdsResponse(dr, istioNamespace, tokenServiceAccount, xdsOpts, dialOpts)
 		if err != nil {
+			if ignoreXdsErrors {
+				log.Errorf("could not get XDS from discovery pod %q: %v", pod.Name, err)
+				continue
+			}
 			return nil, fmt.Errorf("could not get XDS from discovery pod %q: %v", pod.Name, err)
 		}
 
@@ -268,7 +275,7 @@ func MultiRequestAndProcessXds(all bool, dr *discovery.DiscoveryRequest, central
 	}
 
 	// Find all Istiods in revision using K8s, port-forward and call each in turn
-	responses, err := queryEachShard(all, dr, istioNamespace, kubeClient, centralOpts)
+	responses, err := queryEachShard(all, dr, istioNamespace, kubeClient, centralOpts, options.IgnoreXdsErrors)
 	if err != nil {
 		if _, ok := err.(ControlPlaneNotFoundError); ok {
 			// Attempt to get the XDS address from the webhook and try again
