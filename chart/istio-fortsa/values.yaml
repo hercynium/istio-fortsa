@@ -4,7 +4,7 @@ controllerManager:
   container:
     image:
       repository: ghcr.io/hercynium/istio-fortsa
-      tag: v0.0.28
+      tag: v0.0.29
     args:
       - "--leader-elect"
       - "--metrics-bind-address=:8443"
@@ -17,13 +17,13 @@ controllerManager:
         cpu: 10m
         memory: 64Mi
     livenessProbe:
-      initialDelaySeconds: 15
+      initialDelaySeconds: 30
       periodSeconds: 20
       httpGet:
         path: /healthz
         port: 8081
     readinessProbe:
-      initialDelaySeconds: 5
+      initialDelaySeconds: 30
       periodSeconds: 10
       httpGet:
         path: /readyz
@@ -39,6 +39,10 @@ controllerManager:
       type: RuntimeDefault
   terminationGracePeriodSeconds: 10
   serviceAccountName: istio-fortsa-controller-manager
+  livenessProbe:
+    initialDelaySeconds: 30
+  readinessProbe:
+    initialDelaySeconds: 30
 # [RBAC]: To enable RBAC (Permissions) configurations
 rbac:
   enable: true

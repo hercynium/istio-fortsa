@@ -212,6 +212,8 @@ helm-fixup: yq helm-generate ## Customize the generated helm chart from kubebuil
 	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" dist/chart/Chart.yaml
 	$(YQ) -i eval ".controllerManager.container.image.repository = \"$(IMAGE_TAG_BASE)\"" dist/chart/values.yaml
 	$(YQ) -i eval ".controllerManager.container.image.tag = \"$(IMG_TAG)\"" dist/chart/values.yaml
+	$(YQ) -i eval ".controllerManager.container.livenessProbe.initialDelaySeconds = 30" dist/chart/values.yaml
+	$(YQ) -i eval ".controllerManager.container.readinessProbe.initialDelaySeconds = 30" dist/chart/values.yaml
 
 .PHONY: helm-update
 helm-update: helm-fixup ## Copy the chart from dist/chart into chart/istio-fortsa
