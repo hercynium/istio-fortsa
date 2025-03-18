@@ -203,7 +203,7 @@ helmify-generate: helmify config-update ## Generate a generic helm chart for the
 	$(KUSTOMIZE) build config/default | $(HELMIFY) chart/istio-fortsa
 
 .PHONY: helm-generate
-helm-generate: config-update
+helm-generate: kubebuilder config-update
 	$(KUBEBUILDER) edit --plugins helm/v1-alpha
 
 .PHONY: helm-update
