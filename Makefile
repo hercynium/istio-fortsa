@@ -204,7 +204,7 @@ helmify-generate: helmify config-update ## Generate a generic helm chart for the
 
 .PHONY: helm-generate
 helm-generate: config-update
-	kubebuilder edit --plugins helm/v1-alpha
+	$(KUBEBUILDER) edit --plugins helm/v1-alpha
 
 .PHONY: helm-update
 helm-update: yq helm-generate ## Customize the helm chart from make manifests
@@ -249,16 +249,23 @@ $(LOCALBIN):
 
 ## Tool Binaries
 KUBECTL ?= kubectl
+KUBEBUILDER ?= $(LOCALBIN)/kubebuilder-$(KUBEBUILDER_VERSION)
 KUSTOMIZE ?= $(LOCALBIN)/kustomize-$(KUSTOMIZE_VERSION)
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen-$(CONTROLLER_TOOLS_VERSION)
 ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
+KUBEBUILDER_VERSION ?= v4.5.1
 KUSTOMIZE_VERSION ?= v5.6.0
 CONTROLLER_TOOLS_VERSION ?= v0.17.2
 ENVTEST_VERSION ?= release-0.17
 GOLANGCI_LINT_VERSION ?= v1.61.0
+
+.PHONY: kubebuilder
+kubebuilder: $(KUBEBUILDER)
+$(KUBEBUILDER): $(LOCALBIN)
+	$(call go-install-tool,$(KUBEBUILDER),sigs.k8s.io/kubebuilder/v4,$(KUBEBUILDER_VERSION))
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
