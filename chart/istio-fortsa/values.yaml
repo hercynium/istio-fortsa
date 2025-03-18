@@ -4,7 +4,7 @@ controllerManager:
   container:
     image:
       repository: ghcr.io/hercynium/istio-fortsa
-      tag: v0.0.25-5-g2977444
+      tag: v0.0.28
     args:
       - "--leader-elect"
       - "--metrics-bind-address=:8443"

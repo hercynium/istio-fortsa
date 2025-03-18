@@ -2,6 +2,6 @@ apiVersion: v2
 name: istio-fortsa
 description: A Helm chart to distribute the project istio-fortsa
 type: application
-version: v0.0.25-5-g2977444
-appVersion: "v0.0.25-5-g2977444"
+version: v0.0.28
+appVersion: "v0.0.28"
 icon: "https://example.com/icon.png"
