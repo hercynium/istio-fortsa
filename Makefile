@@ -221,6 +221,11 @@ helm-clobber: helm-fixup ## Copy the chart from dist/chart into chart/istio-fort
 	rm -rf chart/istio-fortsa
 	cp -a dist/chart chart/istio-fortsa
 
+.PHONY: helm-update
+helm-update: yq  ## Update the helm chart from chart/istio-fortsa
+	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+
 ##@ Deployment
 
 ifndef ignore-not-found
@@ -385,13 +390,13 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 .PHONY: helm-package
-helm-package:  ## Package the helm chart from chart/istio-fortsa into a tarball
+helm-package: helm-update  ## Package the helm chart from chart/istio-fortsa into a tarball
 	helm package chart/istio-fortsa
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
 
 .PHONY: helm-push
-helm-push: ./istio-fortsa-$(IMG_TAG).tgz ## Push the helm chart to an OCI registry
+helm-push: ./istio-fortsa-$(IMG_TAG).tgz  ## Push the helm chart to an OCI registry
 	helm push ./istio-fortsa-$(IMG_TAG).tgz oci://$(DOCKER_REPO_BASE)/helm
 
 .PHONY: release
