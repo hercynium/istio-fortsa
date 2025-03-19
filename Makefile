@@ -215,8 +215,8 @@ helm-fixup: yq helm-generate ## Customize the generated helm chart from kubebuil
 	$(YQ) -i eval ".controllerManager.container.livenessProbe.initialDelaySeconds = 30" dist/chart/values.yaml
 	$(YQ) -i eval ".controllerManager.container.readinessProbe.initialDelaySeconds = 30" dist/chart/values.yaml
 
-.PHONY: helm-update
-helm-update: helm-fixup ## Copy the chart from dist/chart into chart/istio-fortsa
+.PHONY: helm-clobber
+helm-clobber: helm-fixup ## Copy the chart from dist/chart into chart/istio-fortsa
 	mkdir -p chart
 	rm -rf chart/istio-fortsa
 	cp -a dist/chart chart/istio-fortsa
@@ -385,7 +385,7 @@ catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
 
 .PHONY: helm-package
-helm-package: helm-update ## Package the helm chart into a tarball
+helm-package:  ## Package the helm chart from chart/istio-fortsa into a tarball
 	helm package chart/istio-fortsa
 
 ./istio-fortsa-$(IMG_TAG).tgz: helm-package
@@ -395,7 +395,7 @@ helm-push: ./istio-fortsa-$(IMG_TAG).tgz ## Push the helm chart to an OCI regist
 	helm push ./istio-fortsa-$(IMG_TAG).tgz oci://$(DOCKER_REPO_BASE)/helm
 
 .PHONY: release
-release: config-update helm-update ## Prepare for a release
+release: config-update  ## Prepare for a release
 	git add ./config
 #	git commit -m "Release for version $(VERSION)" || true
 #	git tag "v$(VERSION)"
