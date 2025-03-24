@@ -71,14 +71,14 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	podX, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, metav1.GetOptions{})
 	if err != nil {
 		// it was probably deleted, so nothing to do...
-		log.Info("Couldn't load pod", "err", err, "PodNamespace", req.Namespace, "podName", req.Name)
+		log.Info("Couldn't load pod", "err", err, "ns", req.Namespace, "pod", req.Name)
 		return ctrl.Result{}, nil
 	}
 
 	// find the controller of the pod
 	pc, err := k8s.FindPodController(ctx, *r.KubeClient, *podX)
 	if err != nil {
-		log.Info("Error finding controller for pod", "pod-name", podX.Name, "err", err)
+		log.Info("Could not find controller for pod", "err", err, "ns", podX.Namespace, "pod", podX.Name)
 		// not returning error, since it probably was deleted
 		return ctrl.Result{}, nil
 	}
@@ -88,18 +88,24 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	case "DaemonSet", "Deployment", "StatefulSet":
 		break
 	default:
-		log.Info("Upsupported controller type for restart")
+		log.Info("Upsupported controller type for restart",
+			"ns", podX.Namespace, "pod", podX.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
 		return ctrl.Result{}, nil
 	}
 
 	// check if the controller is ready to be restarted
 	done, err := k8s.IsRolloutReady(ctx, r.Client, pc)
 	if err != nil {
-		log.Error(err, "Couldn't determine if rollout is ready")
+		log.Error(err, "Couldn't determine if rollout is ready",
+			"ns", podX.Namespace, "pod", podX.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
 		return ctrl.Result{}, err
 	}
 	if !done {
-		log.Info("Deployment is currently in a rollout. Skipping.")
+		log.Info("Deployment is currently in a rollout. Skipping.",
+			"ns", podX.Namespace, "pod", podX.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
 		// reinject?
 		return ctrl.Result{}, nil
 	}
@@ -108,7 +114,9 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	dryRun := false // TODO: make this configurable
 	err = k8s.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
-		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", podX.Name)
+		log.Error(err, "Error doing rollout restart on controller for pod",
+			"ns", podX.Namespace, "pod", podX.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
 		return ctrl.Result{}, err
 	}
 

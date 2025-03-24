@@ -248,7 +248,7 @@ func (r *NamespaceReconciler) reconcileWebhookConfig(ctx context.Context,
 		return []reconcile.Request{}
 	}
 
-	log.Info("Istio Webhook Found", "name", webhook.Name, "istioTag", tag, "istioRev", rev)
+	log.Info("Istio Webhook Found", "webhookName", webhook.Name, "istioTag", tag, "istioRev", rev)
 
 	// find namespaces that use this webhook's tag
 	var nsList = &corev1.NamespaceList{}
@@ -256,7 +256,8 @@ func (r *NamespaceReconciler) reconcileWebhookConfig(ctx context.Context,
 		LabelSelector: labels.Set{common.IstioRevLabel: tag}.AsSelector(),
 	})
 	if err != nil {
-		log.Error(err, "Failed to get list of namespaces labeled for istio revision", "tag", tag, "rev", rev)
+		log.Error(err, "Failed to get list of namespaces labeled for istio revision",
+			"webhookName", webhook.Name, "istioTag", tag, "istioRev", rev)
 		return []reconcile.Request{}
 	}
 

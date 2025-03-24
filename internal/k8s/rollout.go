@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	RolloutRestartAnnotation = "fortsa2.scaffidi.net/restartedAt"
+	RolloutRestartAnnotation = "fortsa.scaffidi.net/restartedAt"
 )
 
 // allow read-only operations on all resource types
@@ -32,7 +32,7 @@ const (
 // TODO: if annotation exists, check status. If rollout failed in some way, report it.
 func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object, dryRun bool) error {
 	log := log.FromContext(ctx)
-	log.Info("Attempting rollout restart", "obj", obj.GetName())
+	log.Info("Attempting rollout restart", "obj", obj.GetName(), "kind", obj.GetObjectKind(), "ns", obj.GetNamespace())
 
 	restartTimeInNanos := time.Now().Format(time.RFC3339)
 
@@ -100,6 +100,7 @@ func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclien
 	if err != nil {
 		return false, err
 	}
-	log.Info("Rollout readiness checked", "RolloutStatus", status)
+	log.Info("Rollout readiness checked", "RolloutStatus", status,
+		"obj", obj.GetName(), "kind", obj.GetObjectKind(), "ns", obj.GetNamespace())
 	return done, nil
 }
