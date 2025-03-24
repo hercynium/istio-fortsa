@@ -7,22 +7,29 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - events
-  - pods/portforward
-  - serviceaccounts/token
+  - namespaces
   verbs:
   - create
+  - delete
+  - get
+  - list
   - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
-  - namespaces
   - namespaces/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
   - namespaces/status
   verbs:
   - get
-  - list
-  - watch
+  - patch
+  - update
 - apiGroups:
   - ""
   resources:
@@ -34,6 +41,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - admissionregistration.k8s.io

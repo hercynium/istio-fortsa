@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -38,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/hercynium/istio-fortsa/internal/controller"
-	"github.com/hercynium/istio-fortsa/internal/util/istiodata"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -47,9 +45,8 @@ var (
 	Commit     = "" // set at compile time with -ldflags "-X main.Commit=..."
 	CommitDate = "" // set at compile time with -ldflags "-X main.CommitDate=..."
 
-	scheme    = runtime.NewScheme()
-	setupLog  = ctrl.Log.WithName("setup")
-	istioData = istiodata.IstioData{}
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
@@ -141,22 +138,9 @@ func main() {
 		panic(err.Error())
 	}
 
-	if err = (&controller.MutatingWebhookConfigurationReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		KubeClient: kubeClient,
-		IstioData:  &istioData, // pointer because multiple controllers share the data
-		Recorder:   mgr.GetEventRecorderFor("istio-fortsa/webhook-reconciler"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MutatingWebhookConfiguration")
-		os.Exit(1)
-	}
 	if err = (&controller.NamespaceReconciler{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		KubeClient: kubeClient,
-		IstioData:  &istioData, // pointer because multiple controllers share the data
-		Recorder:   mgr.GetEventRecorderFor("istio-fortsa/namespace-reconciler"),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)
@@ -165,19 +149,11 @@ func main() {
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		KubeClient: kubeClient,
-		IstioData:  &istioData, // pointer because multiple controllers share the data
-		Recorder:   mgr.GetEventRecorderFor("istio-fortsa/pod-reconciler"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder
-
-	// populate the Istio Data before even starting the controllers
-	if err := istioData.RefreshIstioData(context.TODO(), kubeClient); err != nil {
-		setupLog.Error(err, "unable to get initial istio data")
-		os.Exit(1)
-	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

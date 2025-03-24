@@ -13,11 +13,6 @@ projectName: istio-fortsa
 repo: github.com/hercynium/istio-fortsa
 resources:
 - controller: true
-  group: admissionregistration
-  kind: MutatingWebhookConfiguration
-  path: k8s.io/api/admissionregistration/v1
-  version: v1
-- controller: true
   group: core
   kind: Namespace
   path: k8s.io/api/core/v1

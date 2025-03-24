@@ -1,4 +1,4 @@
-package rollout
+package k8s
 
 // code in this package modified from https://github.com/rickslick/autorollout-operator
 
@@ -16,9 +16,13 @@ import (
 )
 
 const (
-	RolloutRestartAnnotation = "fortsa.example.com/restartedAt"
+	RolloutRestartAnnotation = "fortsa2.scaffidi.net/restartedAt"
 )
 
+// allow read-only operations on all resource types
+//+kubebuilder:rbac:groups=*,resources=*,verbs=get;list;watch;
+
+// allow update/patch on resources we can restart
 //+kubebuilder:rbac:groups=apps,resources=deployment;deployments,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=apps,resources=daemonset;daemonsets,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=apps,resources=replicaset;replicasets,verbs=get;list;watch;update;patch
