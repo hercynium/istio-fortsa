@@ -40,12 +40,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/hercynium/istio-fortsa/internal/common"
+	"github.com/hercynium/istio-fortsa/internal/config"
 )
 
 // NamespaceReconciler reconciles a Namespace object
 type NamespaceReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Config config.FortsaConfig
 }
 
 // Allow read-only access to Namespaces

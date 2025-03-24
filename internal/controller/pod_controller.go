@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/hercynium/istio-fortsa/internal/common"
+	"github.com/hercynium/istio-fortsa/internal/config"
 	"github.com/hercynium/istio-fortsa/internal/k8s"
 )
 
@@ -45,6 +46,7 @@ import (
 type PodReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
+	Config     config.FortsaConfig
 	KubeClient *kubernetes.Clientset
 }
 
@@ -111,7 +113,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	// do the thing
-	dryRun := false // TODO: make this configurable
+	dryRun := r.Config.DryRun
 	err = k8s.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod",
@@ -131,7 +133,7 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(onlyReconcileOutdatedPods()).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1,
-			RateLimiter:             podControllerRateLimiter[reconcile.Request](),
+			RateLimiter:             r.podControllerRateLimiter(),
 		}).
 		Complete(r)
 }
@@ -160,17 +162,17 @@ func onlyReconcileOutdatedPods() predicate.Predicate {
 	}
 }
 
-// TODO: figure out how to implement desired rate-limiting semantics here...
-// for example: only perform 5 restarts every minute, and no more than 5 active restarts at a time
-const restartsPerMinute = 5.0 // TODO: compute from restartDelay config param
-const activeRestartLimit = 5  // TODO: make this actually work
+func (r *PodReconciler) podControllerRateLimiter() workqueue.TypedRateLimiter[reconcile.Request] {
+	// TODO: figure out how to implement desired rate-limiting semantics here...
+	// for example: only perform 5 restarts every minute, and no more than 5 active restarts at a time
+	var restartsPerMinute = r.Config.RestartsPerMinute
+	var activeRestartLimit = r.Config.ActiveRestartLimit
 
-func podControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
 	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
 	limiter := rate.NewLimiter(limit, activeRestartLimit)
 	return workqueue.NewTypedMaxOfRateLimiter(
 		//workqueue.NewTypedItemExponentialFailureRateLimiter[T](500*time.Millisecond, 1000*time.Second),
 		// This is only for retry speed and its only the overall factor (not per item)
-		&workqueue.TypedBucketRateLimiter[T]{Limiter: limiter},
+		&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: limiter},
 	)
 }
