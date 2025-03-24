@@ -62,9 +62,9 @@ type NamespaceReconciler struct {
 }
 
 // Allow read-only access to Namespaces
-// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=namespaces/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=namespaces/finalizers,verbs=get;list;watch
 
 // Allow read-only access to MutatingWebhookConfigurations
 //+kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch
