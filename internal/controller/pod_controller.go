@@ -27,9 +27,11 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/hercynium/istio-fortsa/internal/k8s"
 )
@@ -98,7 +100,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	// do the thing
-	dryRun := true
+	dryRun := false // TODO: make this configurable
 	err = k8s.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
 		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", podX.Name)
@@ -114,6 +116,10 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&corev1.Pod{}).
 		Named("pod").
 		WithEventFilter(onlyReconcileOutdatedPods()).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+			RateLimiter:             podControllerRateLimiter[reconcile.Request](),
+		}).
 		Complete(r)
 }
 
@@ -146,7 +152,7 @@ func onlyReconcileOutdatedPods() predicate.Predicate {
 const restartsPerMinute = 5.0 // TODO: compute from restartDelay config param
 const activeRestartLimit = 5  // TODO: make this actually work
 
-func PodControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+func podControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
 	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
 	limiter := rate.NewLimiter(limit, activeRestartLimit)
 	return workqueue.NewTypedMaxOfRateLimiter(

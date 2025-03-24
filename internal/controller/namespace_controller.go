@@ -40,21 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	// k8s object label for istio revision
-	IstioRevLabel = "istio.io/rev"
-
-	// k8s object label for istio revision tag
-	IstioTagLabel = "istio.io/tag"
-
-	// namespace istio runs in
-	IstioNamespace = "istio-system"
-
-	RolloutRestartAnnotation = "fortsa.scaffidi.net/restartedAt"
-
-	PodOutdatedLabel = "fortsa.scaffidi.net/pod-outdated"
-)
-
 // NamespaceReconciler reconciles a Namespace object
 type NamespaceReconciler struct {
 	client.Client
