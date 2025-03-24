@@ -46,6 +46,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
@@ -60,7 +61,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
@@ -71,13 +71,11 @@ require (
 	github.com/lestrrat-go/jwx v1.2.30 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
-	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
@@ -92,13 +90,12 @@ require (
 	github.com/prometheus/prometheus v0.301.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/sagikazarmark/locafero v0.6.0 // indirect
-	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
-	github.com/spf13/afero v1.11.0 // indirect
-	github.com/spf13/cast v1.7.0 // indirect
+	github.com/spf13/afero v1.12.0 // indirect
+	github.com/spf13/cast v1.7.1 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
@@ -122,7 +119,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250122153221-138b5a5a4fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250122153221-138b5a5a4fd4 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	helm.sh/helm/v3 v3.17.0 // indirect
 	istio.io/client-go v1.25.0-alpha.0.0.20250304193000-471332507a39 // indirect
@@ -168,7 +164,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/spf13/viper v1.19.0
+	github.com/spf13/viper v1.20.0
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
