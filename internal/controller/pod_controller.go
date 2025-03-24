@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,84 +19,107 @@ package controller
 import (
 	"context"
 
+	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/hercynium/istio-fortsa/internal/util"
-	"github.com/hercynium/istio-fortsa/internal/util/istiodata"
-	"github.com/hercynium/istio-fortsa/internal/util/k8s"
-	"github.com/hercynium/istio-fortsa/internal/util/k8s/rollout"
+	"github.com/hercynium/istio-fortsa/internal/k8s"
 )
 
 // PodReconciler reconciles a Pod object
 type PodReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	Recorder   record.EventRecorder
 	KubeClient *kubernetes.Clientset
-	IstioData  *istiodata.IstioData
 }
 
+// Allow necessary access to pods
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=core,resources=pods/status,verbs=get;list;watch;update;patch
 //+kubebuilder:rbac:groups=core,resources=pods/finalizers,verbs=get;list;watch;update;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the Pod object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.17.3/pkg/reconcile
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.0/pkg/reconcile
 func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	var log = log.FromContext(ctx)
 
-	log.Info("Reconciling pod", "pod-name", req.NamespacedName)
+	log.Info("Reconciling Pod")
 
-	pod, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	// use the k8s client to get the pod
+	podX, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		// it was probably deleted, so nothing to do...
-		log.Info("Couldn't load pod", "err", err)
+		log.Info("Couldn't load pod", "err", err, "PodNamespace", req.Namespace, "podName", req.Name)
 		return ctrl.Result{}, nil
 	}
 
-	pc, err := k8s.FindPodController(ctx, *r.KubeClient, *pod)
+	// find the controller of the pod
+	pc, err := k8s.FindPodController(ctx, *r.KubeClient, *podX)
 	if err != nil {
-		log.Info("Error finding controller for pod", "pod-name", pod.Name, "err", err)
+		log.Info("Error finding controller for pod", "pod-name", podX.Name, "err", err)
 		// not returning error, since it probably was deleted
 		return ctrl.Result{}, nil
 	}
 
-	done, err := rollout.IsRolloutReady(ctx, r.Client, pc)
+	// make sure the controller is one we can restart
+	switch pc.GetKind() {
+	case "DaemonSet", "Deployment", "StatefulSet":
+		break
+	default:
+		log.Info("Upsupported controller type for restart")
+		return ctrl.Result{}, nil
+	}
+
+	// check if the controller is ready to be restarted
+	done, err := k8s.IsRolloutReady(ctx, r.Client, pc)
 	if err != nil {
+		log.Error(err, "Couldn't determine if rollout is ready")
 		return ctrl.Result{}, err
 	}
 	if !done {
 		log.Info("Deployment is currently in a rollout. Skipping.")
 		// reinject?
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
-	dryRun := false
-	err = rollout.DoRolloutRestart(ctx, r.Client, pc, dryRun)
+	// do the thing
+	dryRun := true
+	err = k8s.DoRolloutRestart(ctx, r.Client, pc, dryRun)
 	if err != nil {
-		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", pod.Name)
+		log.Error(err, "Error doing rollout restart on controller for pod", "pod-name", podX.Name)
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&corev1.Pod{}).
+		Named("pod").
+		WithEventFilter(onlyReconcileOutdatedPods()).
+		Complete(r)
+}
+
 // reconcile if the label is present and non-empty
 func onlyReconcileOutdatedPods() predicate.Predicate {
-	outdatedPodLabel := util.PodOutdatedLabel
+	outdatedPodLabel := PodOutdatedLabel
 	return predicate.Funcs{
 		// on controller start, we get create events, so reconcile only those with the outdated label set
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -118,14 +141,17 @@ func onlyReconcileOutdatedPods() predicate.Predicate {
 	}
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Pod{}).
-		WithEventFilter(onlyReconcileOutdatedPods()).
-		WithOptions(controller.Options{
-			MaxConcurrentReconciles: 1,
-			RateLimiter:             util.PodControllerRateLimiter[reconcile.Request](),
-		}).
-		Complete(r)
+// TODO: figure out how to implement desired rate-limiting semantics here...
+// for example: only perform 5 restarts every minute, and no more than 5 active restarts at a time
+const restartsPerMinute = 5.0 // TODO: compute from restartDelay config param
+const activeRestartLimit = 5  // TODO: make this actually work
+
+func PodControllerRateLimiter[T comparable]() workqueue.TypedRateLimiter[T] {
+	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
+	limiter := rate.NewLimiter(limit, activeRestartLimit)
+	return workqueue.NewTypedMaxOfRateLimiter(
+		//workqueue.NewTypedItemExponentialFailureRateLimiter[T](500*time.Millisecond, 1000*time.Second),
+		// This is only for retry speed and its only the overall factor (not per item)
+		&workqueue.TypedBucketRateLimiter[T]{Limiter: limiter},
+	)
 }
