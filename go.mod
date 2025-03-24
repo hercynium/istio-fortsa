@@ -9,7 +9,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	google.golang.org/grpc v1.70.0
-	istio.io/api v1.25.0-alpha.0.0.20250304192659-bccd18b8afa7
+	istio.io/api v1.25.0
 	istio.io/istio v1.25.0
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
