@@ -1,4 +1,4 @@
-package controller
+package common
 
 const (
 	// k8s object label for istio revision
@@ -9,8 +9,6 @@ const (
 
 	// namespace istio runs in
 	IstioNamespace = "istio-system"
-
-	RolloutRestartAnnotation = "fortsa.scaffidi.net/restartedAt"
 
 	PodOutdatedLabel = "fortsa.scaffidi.net/pod-outdated"
 )

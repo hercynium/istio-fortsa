@@ -20,11 +20,15 @@ import (
 	"context"
 
 	"golang.org/x/time/rate"
+
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/workqueue"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -33,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/hercynium/istio-fortsa/internal/common"
 	"github.com/hercynium/istio-fortsa/internal/k8s"
 )
 
@@ -63,7 +68,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	log.Info("Reconciling Pod")
 
 	// use the k8s client to get the pod
-	podX, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	podX, err := r.KubeClient.CoreV1().Pods(req.Namespace).Get(ctx, req.Name, metav1.GetOptions{})
 	if err != nil {
 		// it was probably deleted, so nothing to do...
 		log.Info("Couldn't load pod", "err", err, "PodNamespace", req.Namespace, "podName", req.Name)
@@ -125,7 +130,7 @@ func (r *PodReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // reconcile if the label is present and non-empty
 func onlyReconcileOutdatedPods() predicate.Predicate {
-	outdatedPodLabel := PodOutdatedLabel
+	outdatedPodLabel := common.PodOutdatedLabel
 	return predicate.Funcs{
 		// on controller start, we get create events, so reconcile only those with the outdated label set
 		CreateFunc: func(e event.CreateEvent) bool {

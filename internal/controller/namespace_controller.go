@@ -38,6 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/hercynium/istio-fortsa/internal/common"
 )
 
 // NamespaceReconciler reconciles a Namespace object
@@ -98,7 +100,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// check each pod if it's using the desired revision of Istio
 	for _, pod := range pods.Items {
-		var podIstioRev = pod.Annotations[IstioRevLabel]
+		var podIstioRev = pod.Annotations[common.IstioRevLabel]
 		if podIstioRev != "" && podIstioRev != nsDesiredRev {
 			log.Info("Outdated pod found", "ns", nsName, "nsRev", nsDesiredRev, "pod", pod.Name, "podRev", podIstioRev)
 			// label the pod as outdated so the pod controller can handle the rollout restart on its controller
@@ -106,7 +108,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if pod.Labels == nil {
 				pod.Labels = make(map[string]string)
 			}
-			pod.Labels[PodOutdatedLabel] = strconv.FormatInt(time.Now().UnixNano(), 10)
+			pod.Labels[common.PodOutdatedLabel] = strconv.FormatInt(time.Now().UnixNano(), 10)
 			err := r.Update(ctx, &pod)
 			if err != nil {
 				log.Error(err, "Couldn't mark pod outdated", "ns", pod.Namespace, "pod", pod.Name)
@@ -127,12 +129,12 @@ func (r *NamespaceReconciler) getNamespaceDesiredRev(ctx context.Context, nsName
 	}
 
 	// istio revision or tag this namespace is configured to use
-	var nsIstioRevLabelValue = ns.Labels[IstioRevLabel]
+	var nsIstioRevLabelValue = ns.Labels[common.IstioRevLabel]
 
 	// get the webhooks that correspond to the label on the namespace
 	var webhooks = &admissionregistrationv1.MutatingWebhookConfigurationList{}
 	err = r.Client.List(ctx, webhooks, &client.ListOptions{
-		LabelSelector: labels.Set{IstioTagLabel: nsIstioRevLabelValue}.AsSelector(),
+		LabelSelector: labels.Set{common.IstioTagLabel: nsIstioRevLabelValue}.AsSelector(),
 	})
 	if err != nil {
 		return "", err
@@ -141,11 +143,11 @@ func (r *NamespaceReconciler) getNamespaceDesiredRev(ctx context.Context, nsName
 	// map webhook tags to istio revisions for easy lookup. { tag => rev }
 	var tagMap = make(map[string]string)
 	for _, webhook := range webhooks.Items {
-		tagMap[webhook.Labels[IstioTagLabel]] = webhook.Labels[IstioRevLabel]
+		tagMap[webhook.Labels[common.IstioTagLabel]] = webhook.Labels[common.IstioRevLabel]
 	}
 
 	// the revision that corresponds to the tag indicated by the label on the namespace
-	var nsDesiredRev = tagMap[ns.Labels[IstioRevLabel]]
+	var nsDesiredRev = tagMap[ns.Labels[common.IstioRevLabel]]
 
 	return nsDesiredRev, nil
 }
@@ -174,20 +176,20 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func onlyReconcileIstioRevLabeled() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()[IstioRevLabel] != ""
+			return e.Object.GetLabels()[common.IstioRevLabel] != ""
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// only reconcile if the value of the label changed
 			var oldLabels = e.ObjectOld.GetLabels()
 			var newLabels = e.ObjectNew.GetLabels()
-			return oldLabels[IstioRevLabel] != newLabels[IstioRevLabel]
+			return oldLabels[common.IstioRevLabel] != newLabels[common.IstioRevLabel]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// no namespace means no label to think about. Skip the event.
 			return false
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return e.Object.GetLabels()[IstioRevLabel] != ""
+			return e.Object.GetLabels()[common.IstioRevLabel] != ""
 		},
 	}
 }
@@ -232,15 +234,15 @@ const webhookAppLabelValue = "sidecar-injector"
 // the webhooks we're interested in...
 func isIstioTaggedWebhook(o client.Object) bool {
 	labels := o.GetLabels()
-	return labels["app"] == webhookAppLabelValue && labels[IstioTagLabel] != ""
+	return labels["app"] == webhookAppLabelValue && labels[common.IstioTagLabel] != ""
 }
 
 func (r *NamespaceReconciler) reconcileWebhookConfig(ctx context.Context,
 	webhook *admissionregistrationv1.MutatingWebhookConfiguration) []reconcile.Request {
 	var log = log.FromContext(ctx)
 
-	var tag = webhook.Labels[IstioTagLabel] // canary, stable, default, etc...
-	var rev = webhook.Labels[IstioRevLabel] // istiod instance revision
+	var tag = webhook.Labels[common.IstioTagLabel] // canary, stable, default, etc...
+	var rev = webhook.Labels[common.IstioRevLabel] // istiod instance revision
 
 	if !isIstioTaggedWebhook(webhook) {
 		return []reconcile.Request{}
@@ -251,7 +253,7 @@ func (r *NamespaceReconciler) reconcileWebhookConfig(ctx context.Context,
 	// find namespaces that use this webhook's tag
 	var nsList = &corev1.NamespaceList{}
 	err := r.Client.List(ctx, nsList, &client.ListOptions{
-		LabelSelector: labels.Set{IstioRevLabel: tag}.AsSelector(),
+		LabelSelector: labels.Set{common.IstioRevLabel: tag}.AsSelector(),
 	})
 	if err != nil {
 		log.Error(err, "Failed to get list of namespaces labeled for istio revision", "tag", tag, "rev", rev)
