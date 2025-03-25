@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	"golang.org/x/time/rate"
 
@@ -171,7 +172,7 @@ func (r *PodReconciler) podControllerRateLimiter() workqueue.TypedRateLimiter[re
 	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
 	limiter := rate.NewLimiter(limit, activeRestartLimit)
 	return workqueue.NewTypedMaxOfRateLimiter(
-		//workqueue.NewTypedItemExponentialFailureRateLimiter[T](500*time.Millisecond, 1000*time.Second),
+		workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Second, 1000*time.Second),
 		// This is only for retry speed and its only the overall factor (not per item)
 		&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: limiter},
 	)
