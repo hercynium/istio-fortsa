@@ -52,6 +52,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		// skip updating it to trigger another restart attempt
 		if !dryRun {
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		} else {
+			log.Info("Dry Run Mode: Not Patching Resource",
+				"ns", objX.Namespace, "podController", objX.Name, "podControllerKind", objX.Kind)
 		}
 		return client.Patch(ctx, objX, patch)
 	case "DaemonSet":
@@ -66,6 +69,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		}
 		if !dryRun {
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		} else {
+			log.Info("Dry Run Mode: Not Patching Resource",
+				"ns", objX.Namespace, "podController", objX.Name, "podControllerKind", objX.Kind)
 		}
 		return client.Patch(ctx, objX, patch)
 	case "StatefulSet":
@@ -80,6 +86,9 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		}
 		if !dryRun {
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
+		} else {
+			log.Info("Dry Run Mode: Not Patching Resource",
+				"ns", objX.Namespace, "podController", objX.Name, "podControllerKind", objX.Kind)
 		}
 		return client.Patch(ctx, objX, patch)
 	default:

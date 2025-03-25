@@ -107,11 +107,12 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Info("Outdated pod found", "ns", nsName, "nsRev", nsDesiredRev, "pod", pod.Name, "podRev", podIstioRev)
 			// label the pod as outdated so the pod controller can handle the rollout restart on its controller
 			// doing all that here would be complex, and make rate-limiting more difficult.
+			patch := client.StrategicMergeFrom(pod.DeepCopy())
 			if pod.Labels == nil {
 				pod.Labels = make(map[string]string)
 			}
 			pod.Labels[common.PodOutdatedLabel] = strconv.FormatInt(time.Now().UnixNano(), 10)
-			err := r.Update(ctx, &pod)
+			err := r.Patch(ctx, &pod, patch)
 			if err != nil {
 				log.Error(err, "Couldn't mark pod outdated", "ns", pod.Namespace, "pod", pod.Name)
 			}

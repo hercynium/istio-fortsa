@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -29,6 +31,12 @@ func GetConfig() (FortsaConfig, error) {
 	if err != nil {
 		return cfg, err
 	}
+
+	if cfg.DryRun {
+		fmt.Println("DRY RUN MODE ACTIVE")
+	}
+	fmt.Printf("RestartsPerMinute: %v\n", cfg.RestartsPerMinute)
+	fmt.Printf("ActiveRestartLimit: %v\n", cfg.ActiveRestartLimit)
 
 	return cfg, nil
 }
