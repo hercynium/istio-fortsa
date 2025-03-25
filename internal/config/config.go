@@ -13,7 +13,7 @@ type FortsaConfig struct {
 	// rate-limit to this many restarts per minute
 	RestartsPerMinute float32
 
-	// rate-limit to this many simultanous active restarts
+	// rate-limit to this many simultaneous active restarts
 	ActiveRestartLimit int
 }
 
