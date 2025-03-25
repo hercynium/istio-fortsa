@@ -99,10 +99,11 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	// check if the controller is ready to be restarted
 	done, err := k8s.IsRolloutReady(ctx, r.Client, pc)
 	if err != nil {
-		log.Error(err, "Couldn't determine if rollout is ready",
-			"ns", podX.Namespace, "pod", podX.Name,
+		log.Info("Couldn't determine if rollout is ready, requeuing",
+			"err", err, "ns", podX.Namespace, "pod", podX.Name,
 			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
-		return ctrl.Result{}, err
+		// try again if we couldn't determine status.
+		return ctrl.Result{Requeue: true}, nil
 	}
 	if !done {
 		log.Info("Deployment is currently in a rollout. Skipping.",

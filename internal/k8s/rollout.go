@@ -44,13 +44,13 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if err != nil {
 			return err
 		}
-		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
-		if objX.Spec.Template.ObjectMeta.Annotations == nil {
-			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
 		// TODO: check the annotation and if it exists, check the timestamp. If it's been less than 1 hour,
 		// skip updating it to trigger another restart attempt
+		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
 		if !dryRun {
+			if objX.Spec.Template.ObjectMeta.Annotations == nil {
+				objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
 		} else {
 			log.Info("Dry Run Mode: Not Patching Resource",
@@ -63,11 +63,13 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if err != nil {
 			return err
 		}
+		// TODO: check the annotation and if it exists, check the timestamp. If it's been less than 1 hour,
+		// skip updating it to trigger another restart attempt
 		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
-		if objX.Spec.Template.ObjectMeta.Annotations == nil {
-			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
 		if !dryRun {
+			if objX.Spec.Template.ObjectMeta.Annotations == nil {
+				objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
 		} else {
 			log.Info("Dry Run Mode: Not Patching Resource",
@@ -80,11 +82,13 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 		if err != nil {
 			return err
 		}
+		// TODO: check the annotation and if it exists, check the timestamp. If it's been less than 1 hour,
+		// skip updating it to trigger another restart attempt
 		patch := ctrlclient.StrategicMergeFrom(objX.DeepCopy())
-		if objX.Spec.Template.ObjectMeta.Annotations == nil {
-			objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
 		if !dryRun {
+			if objX.Spec.Template.ObjectMeta.Annotations == nil {
+				objX.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
 			objX.Spec.Template.ObjectMeta.Annotations[RolloutRestartAnnotation] = restartTimeInNanos
 		} else {
 			log.Info("Dry Run Mode: Not Patching Resource",
@@ -98,6 +102,7 @@ func DoRolloutRestart(ctx context.Context, client ctrlclient.Client, obj ctrlcli
 
 // we only want to issue a rollout when any previous rollout is done. any other status -
 // error, in-progress, whatever, and we don't want to do another rollout automatically.
+// TODO: see if we can do this better... it's a source of errors when a deployment isn't in a good state.
 func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
 	log := log.FromContext(ctx)
 	var revision int64
