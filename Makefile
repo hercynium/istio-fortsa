@@ -225,6 +225,8 @@ helm-clobber: helm-fixup ## Copy the chart from dist/chart into chart/istio-fort
 helm-update: yq  ## Update the helm chart from chart/istio-fortsa
 	$(YQ) -i eval ".version = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
 	$(YQ) -i eval ".appVersion = \"$(IMG_TAG)\"" chart/istio-fortsa/Chart.yaml
+	$(YQ) -i eval ".controllerManager.container.image.repository = \"$(IMAGE_TAG_BASE)\"" chart/istio-fortsa/values.yaml
+	$(YQ) -i eval ".controllerManager.container.image.tag = \"$(IMG_TAG)\"" chart/istio-fortsa/values.yaml
 
 ##@ Deployment
 
