@@ -8,6 +8,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
@@ -117,4 +118,121 @@ func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclien
 	log.Info("Rollout readiness checked", "RolloutStatus", status,
 		"obj", obj.GetName(), "kind", obj.GetObjectKind(), "ns", obj.GetNamespace())
 	return done, nil
+}
+
+func IsControllerReadyForRollout(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
+	switch objX := obj.(type) {
+	case *appsv1.Deployment:
+		return IsDeploymentReady(ctx, client, *objX)
+	case *appsv1.DaemonSet:
+		return IsDaemonSetReady(ctx, client, *objX)
+	case *appsv1.StatefulSet:
+		return IsStatefulSetReady(ctx, client, *objX)
+	}
+	return false, nil
+}
+
+func IsDeploymentReady(ctx context.Context, client ctrlclient.Client, obj appsv1.Deployment) (bool, error) {
+	if obj.Generation > obj.Status.ObservedGeneration {
+		// if generation is greater than observed, it's not ready, and other statuses might not be reliable
+		return false, nil
+	}
+
+	// check for progression
+	var progressing bool = false
+	for _, cond := range obj.Status.Conditions {
+		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentProgressing) {
+			progressing = true
+		}
+	}
+	if !progressing {
+		return false, nil
+	}
+
+	// if updated replicas is less than specified replicas, it's not ready
+	if obj.Spec.Replicas != nil && obj.Status.UpdatedReplicas < *obj.Spec.Replicas {
+		return false, nil
+	}
+
+	// if there are replicas that haven't yet been updated, it's not ready
+	if obj.Status.Replicas > obj.Status.UpdatedReplicas {
+		return false, nil
+	}
+
+	// if not all updated replicas are available, it's not ready
+	if obj.Status.AvailableReplicas < obj.Status.UpdatedReplicas {
+		return false, nil
+	}
+
+	// it's ready
+	return true, nil
+}
+
+func IsDaemonSetReady(ctx context.Context, client ctrlclient.Client, obj appsv1.DaemonSet) (bool, error) {
+	if obj.Generation > obj.Status.ObservedGeneration {
+		// if generation is greater than observed, it's not ready, and other statuses might not be reliable
+		return false, nil
+	}
+
+	// check for progression
+	var progressing bool = false
+	for _, cond := range obj.Status.Conditions {
+		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentProgressing) {
+			progressing = true
+		}
+	}
+	if !progressing {
+		return false, nil
+	}
+
+	if obj.Status.UpdatedNumberScheduled < obj.Status.DesiredNumberScheduled {
+		return false, nil
+	}
+
+	if obj.Status.NumberAvailable < obj.Status.DesiredNumberScheduled {
+		return false, nil
+	}
+
+	// it's ready
+	return true, nil
+}
+
+func IsStatefulSetReady(ctx context.Context, client ctrlclient.Client, obj appsv1.StatefulSet) (bool, error) {
+	if obj.Status.ObservedGeneration == 0 || obj.Generation > obj.Status.ObservedGeneration {
+		// if generation is 0 or greater than observed, it's not ready, and other statuses might not be reliable
+		return false, nil
+	}
+
+	// check for progression
+	var progressing bool = false
+	for _, cond := range obj.Status.Conditions {
+		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentProgressing) {
+			progressing = true
+		}
+	}
+	if !progressing {
+		return false, nil
+	}
+
+	// if updated replicas is less than specified replicas, it's not ready
+	if obj.Spec.Replicas != nil && obj.Status.UpdatedReplicas < *obj.Spec.Replicas {
+		return false, nil
+	}
+
+	// if there are replicas that haven't yet been updated, it's not ready
+	if obj.Status.Replicas > obj.Status.UpdatedReplicas {
+		return false, nil
+	}
+
+	// if not all updated replicas are available, it's not ready
+	if obj.Status.AvailableReplicas < obj.Status.UpdatedReplicas {
+		return false, nil
+	}
+
+	if obj.Status.UpdateRevision != obj.Status.CurrentRevision {
+		return false, nil
+	}
+
+	// it's ready
+	return true, nil
 }
