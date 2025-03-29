@@ -5,6 +5,7 @@ package k8s
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubectl/pkg/polymorphichelpers"
+	deploymentutil "k8s.io/kubectl/pkg/util/deployment"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -121,50 +123,93 @@ func IsRolloutReady(ctx context.Context, client ctrlclient.Client, obj ctrlclien
 }
 
 func IsControllerReadyForRollout(ctx context.Context, client ctrlclient.Client, obj ctrlclient.Object) (bool, error) {
-	switch objX := obj.(type) {
-	case *appsv1.Deployment:
+	switch obj.GetObjectKind().GroupVersionKind().Kind {
+	case "Deployment":
+		objX := &appsv1.Deployment{}
+		err := client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		if err != nil {
+			return false, err
+		}
 		return IsDeploymentReady(ctx, client, *objX)
-	case *appsv1.DaemonSet:
+	case "DaemonSet":
+		objX := &appsv1.DaemonSet{}
+		err := client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		if err != nil {
+			return false, err
+		}
 		return IsDaemonSetReady(ctx, client, *objX)
-	case *appsv1.StatefulSet:
+	case "StatefulSet":
+		objX := &appsv1.StatefulSet{}
+		err := client.Get(ctx, types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, objX)
+		if err != nil {
+			return false, err
+		}
 		return IsStatefulSetReady(ctx, client, *objX)
 	}
 	return false, nil
 }
 
 func IsDeploymentReady(ctx context.Context, client ctrlclient.Client, obj appsv1.Deployment) (bool, error) {
+	log := log.FromContext(ctx)
+
+	if obj.Spec.Template.Annotations != nil {
+		ts := obj.Spec.Template.Annotations[RolloutRestartAnnotation]
+		if ts != "" {
+			thirtySecondsAgo := time.Now().Add(-30 * time.Second)
+			nanosInt, _ := strconv.ParseInt(ts, 10, 64)
+			restartedAt := time.Unix(0, nanosInt)
+			if restartedAt.Before(thirtySecondsAgo) {
+				log.Info("GGG")
+				return true, nil
+			}
+		}
+	}
+
 	if obj.Generation > obj.Status.ObservedGeneration {
 		// if generation is greater than observed, it's not ready, and other statuses might not be reliable
+		log.Info("AAA")
 		return false, nil
 	}
 
-	// check for progression
-	var progressing bool = false
+	// check for timed out
+	cond := deploymentutil.GetDeploymentCondition(obj.Status, appsv1.DeploymentProgressing)
+	if cond != nil && cond.Reason == deploymentutil.TimedOutReason {
+		log.Info("BBB")
+		return false, nil
+	}
+
+	// check for availability
+	var available bool = false
 	for _, cond := range obj.Status.Conditions {
-		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentProgressing) {
-			progressing = true
+		if cond.Type == appsv1.DeploymentAvailable && cond.Status == corev1.ConditionTrue {
+			available = true
 		}
 	}
-	if !progressing {
+	if !available {
+		log.Info("XXX")
 		return false, nil
 	}
 
 	// if updated replicas is less than specified replicas, it's not ready
 	if obj.Spec.Replicas != nil && obj.Status.UpdatedReplicas < *obj.Spec.Replicas {
+		log.Info("CCC")
 		return false, nil
 	}
 
 	// if there are replicas that haven't yet been updated, it's not ready
 	if obj.Status.Replicas > obj.Status.UpdatedReplicas {
+		log.Info("DDD")
 		return false, nil
 	}
 
 	// if not all updated replicas are available, it's not ready
 	if obj.Status.AvailableReplicas < obj.Status.UpdatedReplicas {
+		log.Info("EEE")
 		return false, nil
 	}
 
 	// it's ready
+	log.Info("FFF")
 	return true, nil
 }
 
@@ -177,7 +222,7 @@ func IsDaemonSetReady(ctx context.Context, client ctrlclient.Client, obj appsv1.
 	// check for progression
 	var progressing bool = false
 	for _, cond := range obj.Status.Conditions {
-		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentProgressing) {
+		if cond.Status == corev1.ConditionStatus(appsv1.DeploymentAvailable) {
 			progressing = true
 		}
 	}

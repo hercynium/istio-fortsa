@@ -145,11 +145,11 @@ func onlyReconcileOutdatedPods() predicate.Predicate {
 	return predicate.Funcs{
 		// on controller start, we get create events, so reconcile only those with the outdated label set
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()[outdatedPodLabel] != ""
+			return false && e.Object.GetLabels()[outdatedPodLabel] != ""
 		},
 		// reconcile when a pod is updated and the label has been added or changed
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetLabels()[outdatedPodLabel] != "" &&
+			return false && e.ObjectNew.GetLabels()[outdatedPodLabel] != "" &&
 				e.ObjectOld.GetLabels()[outdatedPodLabel] != e.ObjectNew.GetLabels()[outdatedPodLabel]
 		},
 		// if a pod with this label is deleted, there's nothing to do, right?

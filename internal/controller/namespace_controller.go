@@ -18,9 +18,9 @@ package controller
 
 import (
 	"context"
-	"strconv"
 	"time"
 
+	"golang.org/x/time/rate"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -28,10 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/workqueue"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -41,14 +43,18 @@ import (
 
 	"github.com/hercynium/istio-fortsa/internal/common"
 	"github.com/hercynium/istio-fortsa/internal/config"
+	"github.com/hercynium/istio-fortsa/internal/k8s"
 )
 
 // NamespaceReconciler reconciles a Namespace object
 type NamespaceReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Config config.FortsaConfig
+	Scheme     *runtime.Scheme
+	Config     config.FortsaConfig
+	KubeClient *kubernetes.Clientset
 }
+
+type controllerSet map[string]bool
 
 // Allow read-only access to Namespaces
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
@@ -60,10 +66,10 @@ type NamespaceReconciler struct {
 //+kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations/status,verbs=get;list;watch
 //+kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations/finalizers,verbs=get;list;watch
 
-// Allow necessary access to Pods (we update labels)
-//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=core,resources=pods/status,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=core,resources=pods/finalizers,verbs=get;list;watch;update;patch
+// Allow necessary access to Pods
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=pods/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=pods/finalizers,verbs=get;list;watch
 
 // Allow read-only access to everything
 // +kubebuilder:rbac:groups=*,resources=*,verbs=get;list;watch
@@ -101,25 +107,62 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// check each pod if it's using the desired revision of Istio
+	var seenControllers = make(controllerSet)
 	for _, pod := range pods.Items {
 		var podIstioRev = pod.Annotations[common.IstioRevLabel]
 		if podIstioRev != "" && podIstioRev != nsDesiredRev {
 			log.Info("Outdated pod found", "ns", nsName, "nsRev", nsDesiredRev, "pod", pod.Name, "podRev", podIstioRev)
-			// label the pod as outdated so the pod controller can handle the rollout restart on its controller
-			// doing all that here would be complex, and make rate-limiting more difficult.
-			patch := client.StrategicMergeFrom(pod.DeepCopy())
-			if pod.Labels == nil {
-				pod.Labels = make(map[string]string)
-			}
-			pod.Labels[common.PodOutdatedLabel] = strconv.FormatInt(time.Now().UnixNano(), 10)
-			err := r.Patch(ctx, &pod, patch)
+			err := r.RestartPodController(ctx, req, pod, seenControllers)
 			if err != nil {
-				log.Error(err, "Couldn't mark pod outdated", "ns", pod.Namespace, "pod", pod.Name)
+				log.Error(err, "Couldn't restart controller for pod", "ns", pod.Namespace, "pod", pod.Name)
 			}
 		}
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *NamespaceReconciler) RestartPodController(ctx context.Context, req ctrl.Request, pod corev1.Pod, seenControllers controllerSet) error {
+	var log = log.FromContext(ctx)
+
+	// find the controller of the pod
+	pc, err := k8s.FindPodController(ctx, *r.KubeClient, pod)
+	if err != nil {
+		log.Info("Could not find controller for pod", "err", err, "ns", pod.Namespace, "pod", pod.Name)
+		// not returning error, since it (pod or controller) probably was deleted
+		return nil
+	}
+
+	if seenControllers[pc.GetName()] {
+		log.Info("Alredy seen the controller for this pod",
+			"ns", pod.Namespace, "pod", pod.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
+		return nil
+	}
+	seenControllers[pc.GetName()] = true
+
+	// make sure the controller is one we can restart
+	switch pc.GetKind() {
+	case "DaemonSet", "Deployment", "StatefulSet":
+		break
+	default:
+		log.Info("Upsupported controller type for restart",
+			"ns", pod.Namespace, "pod", pod.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
+		return nil
+	}
+
+	// do the thing
+	dryRun := r.Config.DryRun
+	err = k8s.DoRolloutRestart(ctx, r.Client, pc, dryRun)
+	if err != nil {
+		log.Error(err, "Error doing rollout restart on controller for pod",
+			"ns", pod.Namespace, "pod", pod.Name,
+			"podController", pc.GetName(), "podControllerKind", pc.GetKind())
+		return err
+	}
+
+	return nil
 }
 
 func (r *NamespaceReconciler) getNamespaceDesiredRev(ctx context.Context, nsName string) (string, error) {
@@ -172,6 +215,10 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("namespace").
 		WithEventFilter(onlyReconcileIstioRevLabeled()).
 		WatchesRawSource(src).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 1,
+			RateLimiter:             r.namespaceControllerRateLimiter(),
+		}).
 		Complete(r)
 }
 
@@ -291,4 +338,19 @@ func onlyReconcileIstioWebhooks() predicate.TypedPredicate[*admissionregistratio
 			return isIstioTaggedWebhook(e.Object)
 		},
 	}
+}
+
+func (r *NamespaceReconciler) namespaceControllerRateLimiter() workqueue.TypedRateLimiter[reconcile.Request] {
+	// TODO: figure out how to implement desired rate-limiting semantics here...
+	// for example: only perform 5 restarts every minute, and no more than 5 active restarts at a time
+	var restartsPerMinute = r.Config.RestartsPerMinute
+	var activeRestartLimit = r.Config.ActiveRestartLimit
+
+	limit := rate.Limit(1.0 / (60.0 / restartsPerMinute))
+	limiter := rate.NewLimiter(limit, activeRestartLimit)
+	return workqueue.NewTypedMaxOfRateLimiter(
+		workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](5*time.Second, 1000*time.Second),
+		// This is only for retry speed and its only the overall factor (not per item)
+		&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: limiter},
+	)
 }

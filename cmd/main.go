@@ -148,9 +148,10 @@ func main() {
 	}
 
 	if err = (&controller.NamespaceReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Config: cfg,
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Config:     cfg,
+		KubeClient: kubeClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)
